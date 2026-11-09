@@ -1,122 +1,106 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
+import { StoreProvider, useStore } from './store.jsx'
+import { licenseStatus, ROLE_LABEL } from './utils.js'
+import Dashboard from './pages/Dashboard.jsx'
+import POS from './pages/POS.jsx'
+import Inventory from './pages/Inventory.jsx'
+import Receipts from './pages/Receipts.jsx'
+import Staff from './pages/Staff.jsx'
+import GPP from './pages/GPP.jsx'
+import Settings from './pages/Settings.jsx'
 
-function App() {
-  const [count, setCount] = useState(0)
+const NAV = [
+  { key: 'dashboard', icon: '📊', label: 'ภาพรวม', roles: ['admin', 'pharmacist'] },
+  { key: 'pos', icon: '🛒', label: 'ขายหน้าร้าน', roles: ['admin', 'pharmacist', 'cashier'] },
+  { key: 'inventory', icon: '📦', label: 'คลังยา', roles: ['admin', 'pharmacist'] },
+  { key: 'receipts', icon: '🧾', label: 'ใบเสร็จ', roles: ['admin', 'pharmacist', 'cashier'] },
+  { key: 'gpp', icon: '📋', label: 'รายงาน ขย.', roles: ['admin', 'pharmacist'] },
+  { key: 'staff', icon: '👩‍⚕️', label: 'เภสัชกร/พนักงาน', roles: ['admin', 'pharmacist', 'cashier'] },
+  { key: 'settings', icon: '⚙️', label: 'ตั้งค่า', roles: ['admin'] },
+]
 
+function Login() {
+  const { state, dispatch } = useStore()
+  const [sel, setSel] = useState(null)
+  const [pin, setPin] = useState('')
+  const [err, setErr] = useState('')
+  const submit = (e) => {
+    e.preventDefault()
+    if (sel.pin === pin) dispatch({ type: 'LOGIN', staffId: sel.id })
+    else { setErr('PIN ไม่ถูกต้อง'); setPin('') }
+  }
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+    <div className="login">
+      <div className="login-box card">
+        <div className="brand big"><span className="logo">💊</span> ยาวิเศษ <small>POS ร้านขายยา</small></div>
+        {!sel ? (
+          <>
+            <p className="muted">เลือกผู้ใช้งาน</p>
+            <div className="user-list">
+              {state.staff.map((s) => (
+                <button key={s.id} className="user-btn" onClick={() => { setSel(s); setErr('') }}>
+                  <span className="avatar" style={{ background: s.color }}>{s.name[0]}</span>
+                  <span><b>{s.title} {s.name}</b><br /><small className="muted">{ROLE_LABEL[s.role]}{s.license ? ` · ${s.license.no}` : ''}</small></span>
+                </button>
+              ))}
+            </div>
+            <p className="muted small">โหมดสาธิต: PIN ตัวอย่าง 1111 (ผู้ดูแล), 2222 (เภสัชกร), 3333 (พนักงานขาย)</p>
+          </>
+        ) : (
+          <form onSubmit={submit}>
+            <p>สวัสดี <b>{sel.title} {sel.name}</b> — กรอก PIN</p>
+            <input className="pin" type="password" inputMode="numeric" maxLength={4} autoFocus value={pin} onChange={(e) => setPin(e.target.value)} />
+            {err && <div className="alert danger">{err}</div>}
+            <div className="row gap">
+              <button type="button" className="btn" onClick={() => setSel(null)}>← ย้อนกลับ</button>
+              <button className="btn primary">เข้าสู่ระบบ</button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   )
 }
 
-export default App
+function Shell() {
+  const { me, dispatch } = useStore()
+  const allowed = NAV.filter((n) => n.roles.includes(me.role))
+  const [page, setPage] = useState(allowed[0].key === 'dashboard' ? 'dashboard' : 'pos')
+  const go = (k) => allowed.some((n) => n.key === k) && setPage(k)
+  const lic = me.license ? licenseStatus(me.license) : null
+  const Page = { dashboard: Dashboard, pos: POS, inventory: Inventory, receipts: Receipts, gpp: GPP, staff: Staff, settings: Settings }[page]
+  return (
+    <div className="shell">
+      <aside className="side no-print">
+        <div className="brand"><span className="logo">💊</span> ยาวิเศษ</div>
+        <nav>
+          {allowed.map((n) => (
+            <button key={n.key} className={'nav ' + (page === n.key ? 'active' : '')} onClick={() => setPage(n.key)}>
+              <span>{n.icon}</span> {n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="me">
+          <span className="avatar" style={{ background: me.color }}>{me.name[0]}</span>
+          <div>
+            <b>{me.title} {me.name}</b>
+            <div className="small muted">{ROLE_LABEL[me.role]}</div>
+            {lic && <div className={'small txt-' + lic.cls}>{me.license.no} · {lic.label}</div>}
+          </div>
+          <button className="icon-btn" title="ออกจากระบบ" onClick={() => dispatch({ type: 'LOGOUT' })}>⏻</button>
+        </div>
+      </aside>
+      <main className="main"><Page go={go} /></main>
+    </div>
+  )
+}
+
+function Root() {
+  const { me } = useStore()
+  return me ? <Shell key={me.id} /> : <Login />
+}
+
+export default function App() {
+  return <StoreProvider><Root /></StoreProvider>
+}

@@ -1,16 +1,44 @@
-# React + Vite
+# ยาวิเศษ POS — ระบบ POS ร้านขายยา
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite (ไม่มี dependency เพิ่ม) ข้อมูลเก็บใน localStorage ของเบราว์เซอร์
 
-Currently, two official plugins are available:
+## เริ่มใช้งาน
+```bash
+npm install
+npm run dev
+```
+เข้าสู่ระบบด้วย PIN ตัวอย่าง: `1111` ผู้ดูแล/เภสัชกร · `2222` เภสัชกร · `3333` พนักงานขาย
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ฟีเจอร์
+| หน้า | ความสามารถ |
+|---|---|
+| 📊 ภาพรวม | ยอดขาย/กำไรวันนี้, กราฟ 7 วัน, ยาขายดี, ยาหมดอายุ/ใกล้หมด, สต็อกต่ำ, เตือนใบอนุญาตเภสัชกรใกล้หมดอายุ |
+| 🛒 ขายหน้าร้าน | สแกนบาร์โค้ด (Enter), ตะกร้า, ส่วนลด, เงินสด/QR/บัตร, เงินทอน, ตัดสต็อกแบบ FEFO (lot หมดอายุก่อนออกก่อน), เตือนแพ้ยา, บังคับเลือกเภสัชกรเมื่อขายยาอันตราย, บังคับใบสั่งยาเมื่อขายยาควบคุมพิเศษ |
+| 📦 คลังยา | เพิ่ม/แก้สินค้า, รับยาเข้าแยก Lot + วันหมดอายุ (สแกนได้), ตัดจำหน่าย/ทำลาย, กรองใกล้หมด/หมดอายุ, ส่งออก CSV |
+| 🧾 ใบเสร็จ | ประวัติการขาย, พิมพ์ใบเสร็จย้อนหลัง, ยกเลิกบิล (คืนสต็อกอัตโนมัติ), พิมพ์ฉลากยาพร้อมวิธีใช้ |
+| 📋 รายงาน ขย. | ขย.9 (ซื้อ), ขย.10 (ขายยาอันตราย), ขย.11 (ยาควบคุมพิเศษ), ขย.12 (ตามใบสั่ง), บันทึกทำลาย/คืน — บันทึกอัตโนมัติ, เลือกเดือน, CSV, พิมพ์ |
+| 👩‍⚕️ เภสัชกร/พนักงาน | ทะเบียนเภสัชกร + **การ์ดใบประกอบวิชาชีพจำลอง** (พิมพ์ได้), สถานะใบอนุญาต, บทบาท/สิทธิ์ |
+| ⚙️ ตั้งค่า | ข้อมูลร้านบนใบเสร็จ, ลูกค้า/ประวัติแพ้ยา, สำรอง/กู้คืน JSON, รีเซ็ตข้อมูลตัวอย่าง |
 
-## React Compiler
+## สิทธิ์ผู้ใช้
+- **ผู้ดูแล** — ทุกหน้า
+- **เภสัชกร** — ทุกหน้า ยกเว้นตั้งค่า/แก้ไขพนักงาน
+- **พนักงานขาย** — ขายหน้าร้าน, ใบเสร็จ, ดูรายชื่อเภสัชกร (ขายยาอันตรายได้เมื่อเลือกเภสัชกรผู้จ่ายยาที่ใบอนุญาตยังไม่หมดอายุ)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## หมายเหตุสำคัญ
+- การ์ดใบประกอบวิชาชีพเป็น **เอกสารจำลอง** มีลายน้ำ "เอกสารจำลอง / ไม่ใช่เอกสารราชการ" เสมอ ไม่ได้เลียนแบบตราหรือแบบฟอร์มของสภาเภสัชกรรม — ร้านต้องแสดงใบอนุญาตตัวจริง
+- ข้อมูลบุคคล/เลขใบอนุญาตตัวอย่างเป็นข้อมูลสมมติทั้งหมด
+- ตรวจสอบรูปแบบ ขย. กับประกาศ อย. ล่าสุดก่อนใช้งานจริง
+- QR พร้อมเพย์เป็นภาพตัวอย่าง ยังไม่เชื่อมผู้ให้บริการชำระเงิน
+- ข้อมูลอยู่ในเบราว์เซอร์เครื่องเดียว หากต้องการหลายเครื่อง/หลายสาขา ต้องเพิ่ม backend (เช่น Supabase/Firebase)
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## โครงสร้าง
+```
+src/
+  App.jsx            เมนู + ล็อกอิน + สิทธิ์
+  store.jsx          state กลาง (reducer) + localStorage
+  utils.js           ฟังก์ชันช่วย (วันที่ไทย, สกุลเงิน, CSV)
+  data/seed.js       ข้อมูลตัวอย่าง
+  components/        Modal/Badge, LicenseCard, ReceiptView/DrugLabel
+  pages/             Dashboard, POS, Inventory, Receipts, GPP, Staff, Settings
+```
