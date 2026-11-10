@@ -18,7 +18,7 @@ export default function ReceiptView({ receipt: r }) {
       <div className="ln"><span>เลขที่ {r.no}</span><span>{thDate(r.at, true)}</span></div>
       <div>ลูกค้า: {cust?.name || 'ลูกค้าทั่วไป'}</div>
       {r.rxNo && <div>ใบสั่งยา {r.rxNo} · {r.prescriber}</div>}
-      {r.voided && <div className="void-stamp">ยกเลิกแล้ว — {r.voidReason}</div>}
+      {r.voided && <div className="void-stamp">ยกเลิกแล้ว - {r.voidReason}</div>}
       <hr />
       {r.items.map((it, i) => (
         <div key={i}>

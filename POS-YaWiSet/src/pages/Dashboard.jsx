@@ -30,12 +30,12 @@ export default function Dashboard({ go }) {
   return (
     <div className="page">
       <PageHead label="Dashboard" title="สวัสดี" em={me.name.split(' ')[0]} sub={`ภาพรวมร้าน ${state.settings.shopName} · ${thDate(today())}`}>
-        <button className="btn primary" onClick={() => go('pos')}>เปิดหน้าขาย →</button>
+        <button className="btn primary" onClick={() => go('pos')}>เปิดหน้าขาย</button>
       </PageHead>
 
       <div className="grid stats">
         <Stat accent label="ยอดขายวันนี้" value={baht(sales)} change={`${d.todays.length} บิล`} />
-        <Stat label="กำไรขั้นต้นวันนี้" value={baht(d.profit)} change={sales ? `${Math.round((d.profit / sales) * 100)}% ของยอดขาย` : '—'} />
+        <Stat label="กำไรขั้นต้นวันนี้" value={baht(d.profit)} change={sales ? `${Math.round((d.profit / sales) * 100)}% ของยอดขาย` : '-'} />
         <Stat label="สินค้าใกล้หมด" value={num(d.low.length)} change="รายการ ต่ำกว่าขั้นต่ำ" />
         <Stat label="มูลค่าสต็อก (ทุน)" value={baht(d.stockValue)} change={`${state.products.length} รายการสินค้า`} />
       </div>
@@ -66,20 +66,20 @@ export default function Dashboard({ go }) {
           <div className="grid" style={{ gap: 10 }}>
             {d.lic.map((s) => (
               <div key={s.id} className={'alert ' + licenseStatus(s.license).cls}>
-                🪪 ใบอนุญาตของ <b>{s.title} {s.name}</b> ({s.license.no}) — {licenseStatus(s.license).label}
+                ใบอนุญาตของ <b>{s.title} {s.name}</b> ({s.license.no}) - {licenseStatus(s.license).label}
               </div>
             ))}
             {d.expiring.slice(0, 6).map(({ p, l, n }) => (
               <div key={p.id + l.lotNo + l.exp} className={'alert ' + (n < 0 ? 'danger' : 'warn')}>
-                ⏳ {p.name} Lot {l.lotNo} ({l.qty} {p.unit}) — {n < 0 ? `หมดอายุแล้ว ${-n} วัน` : `หมดอายุใน ${n} วัน`}
+                {p.name} Lot {l.lotNo} ({l.qty} {p.unit}) - {n < 0 ? `หมดอายุแล้ว ${-n} วัน` : `หมดอายุใน ${n} วัน`}
               </div>
             ))}
             {d.low.slice(0, 6).map((p) => (
-              <div key={p.id} className="alert">📦 {p.name} เหลือ {stockOf(p)} {p.unit} (ขั้นต่ำ {p.minStock}){expiredQty(p) ? ` · หมดอายุค้าง ${expiredQty(p)}` : ''}</div>
+              <div key={p.id} className="alert">{p.name} เหลือ {stockOf(p)} {p.unit} (ขั้นต่ำ {p.minStock}){expiredQty(p) ? ` · หมดอายุค้าง ${expiredQty(p)}` : ''}</div>
             ))}
             {!d.lic.length && !d.expiring.length && !d.low.length && <p className="muted">ไม่มีรายการที่ต้องดำเนินการ ✓</p>}
           </div>
-          {(d.expiring.length > 6 || d.low.length > 6) && <button className="btn sm" style={{ marginTop: 14 }} onClick={() => go('inventory')}>ดูทั้งหมดในคลังยา →</button>}
+          {(d.expiring.length > 6 || d.low.length > 6) && <button className="btn sm" style={{ marginTop: 14 }} onClick={() => go('inventory')}>ดูทั้งหมดในคลังยา</button>}
         </div>
       </div>
     </div>

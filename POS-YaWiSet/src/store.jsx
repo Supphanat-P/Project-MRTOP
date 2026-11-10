@@ -1,7 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { api, getToken, session as ss, setToken } from './api.js'
 
-// ข้อมูลทั้งหมดอยู่ใน MySQL — หน้าจอเรียก act(ชื่อคำสั่ง, ข้อมูล) → ส่งไป API → โหลดข้อมูลใหม่
 const EMPTY = { products: [], staff: [], customers: [], settings: {}, receipts: [], moves: [] }
 const STAFF_KEY = 'yawiset-staff'
 
@@ -61,7 +60,6 @@ export function StoreProvider({ children }) {
     setStaffId(id)
   }
 
-  // คืนผลลัพธ์จาก API เมื่อสำเร็จ, null เมื่อผิดพลาด (แสดง toast ให้แล้ว)
   const act = async (name, payload, okMsg) => {
     setBusy(true)
     try {

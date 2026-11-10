@@ -1,7 +1,5 @@
 import { licenseStatus, thDateLong } from '../utils.js'
 
-// เอกสารจำลองใบประกอบวิชาชีพเภสัชกรรม — ใช้แสดง/พิมพ์ในระบบเพื่อการสาธิตและฝึกอบรมเท่านั้น
-// ออกแบบเป็นเอกสารของระบบเอง: ไม่ใช้ตรา ชื่อ หรือแบบฟอร์มของหน่วยงานจริง และมีลายน้ำ "เอกสารจำลอง" เสมอ
 export default function LicenseDoc({ staff, shop }) {
   const lic = staff.license || {}
   const st = licenseStatus(staff.license)
@@ -17,7 +15,7 @@ export default function LicenseDoc({ staff, shop }) {
       <div className="lic-top">
         <div className="lic-seal">✚</div>
         <div>
-          <div className="lic-org">ยาวิเศษ POS · ทะเบียนเภสัชกรประจำร้าน</div>
+          <div className="lic-org">ยาวิเศษ · ทะเบียนเภสัชกรประจำร้าน</div>
           <div className="lic-title">Pharmacy Practice License</div>
           <div className="lic-title-th">ใบประกอบวิชาชีพเภสัชกรรม (ฉบับจำลอง)</div>
         </div>
@@ -49,7 +47,7 @@ export default function LicenseDoc({ staff, shop }) {
 
       <div className="lic-foot">
         <span>รหัสอ้างอิงในระบบ {ref}</span>
-        <span>ข้อมูลสมมติเพื่อการสาธิต — ตรวจสอบใบอนุญาตจริงกับสภาเภสัชกรรมก่อนใช้งาน</span>
+        <span>ข้อมูลสมมติเพื่อการสาธิต - ตรวจสอบใบอนุญาตจริงกับสภาเภสัชกรรมก่อนใช้งาน</span>
       </div>
     </div>
   )

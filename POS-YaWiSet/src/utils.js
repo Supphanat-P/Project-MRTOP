@@ -7,7 +7,6 @@ export const CATEGORIES = [
   'อุปกรณ์การแพทย์',
   'อาหารเสริม',
 ]
-// ประเภทที่ต้องมีเภสัชกรเป็นผู้จ่าย
 export const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
 export const UNITS = ['แผง', 'เม็ด', 'แคปซูล', 'ขวด', 'ซอง', 'กล่อง', 'หลอด', 'ชิ้น']
 export const ROLE_LABEL = { admin: 'ผู้ดูแล / เภสัชกร', pharmacist: 'เภสัชกร', cashier: 'พนักงานขาย' }
@@ -21,7 +20,6 @@ export const baht = (n) =>
   '฿' + (Number(n) || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 export const num = (n) => (Number(n) || 0).toLocaleString('th-TH')
 
-// วันที่ท้องถิ่น (YYYY-MM-DD)
 export const today = (offset = 0) => {
   const t = new Date()
   t.setDate(t.getDate() + offset)
@@ -73,7 +71,6 @@ export const downloadCSV = (filename, rows) => {
   URL.revokeObjectURL(a.href)
 }
 
-// พิมพ์เฉพาะ modal ที่เปิดอยู่
 export const printModal = () => {
   document.body.classList.add('printing')
   window.print()

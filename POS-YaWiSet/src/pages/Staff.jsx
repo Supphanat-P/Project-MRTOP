@@ -47,9 +47,9 @@ export default function Staff() {
                   <dt>สถาบัน</dt><dd>{s.license.university || '-'}</dd>
                   <dt>หมดอายุ</dt><dd>{thDate(s.license.expires)}</dd>
                 </dl>
-              ) : <p className="muted small">พนักงานขาย — จ่ายได้เฉพาะยาสามัญประจำบ้าน/สินค้าทั่วไป ยาอันตรายต้องให้เภสัชกรยืนยัน</p>}
+              ) : <p className="muted small">พนักงานขาย - จ่ายได้เฉพาะยาสามัญประจำบ้าน/สินค้าทั่วไป ยาอันตรายต้องให้เภสัชกรยืนยัน</p>}
               <div className="row" style={{ marginTop: 16 }}>
-                {s.license && <button className="btn sm primary" onClick={() => setDoc(s.id)}>🪪 ใบประกอบวิชาชีพ</button>}
+                {s.license && <button className="btn sm primary" onClick={() => setDoc(s.id)}>ใบประกอบวิชาชีพ</button>}
                 {isAdmin && <button className="btn sm" onClick={() => setEdit({ ...s, pin: '', license: s.license || blank().license })}>แก้ไข</button>}
               </div>
             </div>
@@ -67,8 +67,8 @@ export default function Staff() {
       </div>
 
       {viewing && (
-        <Modal wide title={`ใบประกอบวิชาชีพ (จำลอง) — ${viewing.title} ${viewing.name}`} onClose={() => setDoc(null)}
-          footer={<><span className="muted small left">เอกสารจำลองสำหรับแสดงในระบบเท่านั้น</span><button className="btn" onClick={() => setDoc(null)}>ปิด</button><button className="btn primary" onClick={printModal}>🖨 พิมพ์</button></>}>
+        <Modal wide title={`ใบประกอบวิชาชีพ (จำลอง) - ${viewing.title} ${viewing.name}`} onClose={() => setDoc(null)}
+          footer={<><span className="muted small left">เอกสารจำลองสำหรับแสดงในระบบเท่านั้น</span><button className="btn" onClick={() => setDoc(null)}>ปิด</button><button className="btn primary" onClick={printModal}>พิมพ์</button></>}>
           <LicenseDoc staff={viewing} shop={state.settings} />
         </Modal>
       )}

@@ -39,7 +39,7 @@ export default function Receipts() {
   return (
     <div className="page">
       <PageHead label="Receipts" title="ใบเสร็จ &" em="ประวัติการขาย" sub="ค้นหา พิมพ์ใบเสร็จ/ฉลากยาย้อนหลัง และยกเลิกบิล (คืนสต็อกเข้า Lot เดิมอัตโนมัติ)">
-        <button className="btn" onClick={exportCSV}>⬇ CSV</button>
+        <button className="btn" onClick={exportCSV}>CSV</button>
       </PageHead>
 
       <div className="grid stats" style={{ marginBottom: 20 }}>
@@ -88,7 +88,7 @@ export default function Receipts() {
               <button className={mode === 'receipt' ? 'on' : ''} onClick={() => setMode('receipt')}>ใบเสร็จ</button>
               <button className={mode === 'label' ? 'on' : ''} onClick={() => setMode('label')}>ฉลากยา</button>
             </div>
-            <button className="btn primary" onClick={printModal}>🖨 พิมพ์</button>
+            <button className="btn primary" onClick={printModal}>พิมพ์</button>
           </>}>
           {mode === 'receipt' ? <ReceiptView receipt={viewing} /> : viewing.items.map((it, i) => <DrugLabel key={i} item={it} receipt={viewing} />)}
         </Modal>
@@ -101,7 +101,7 @@ export default function Receipts() {
               if (!voiding.reason.trim()) return alert('กรุณาระบุเหตุผล')
               if (await act('voidReceipt', { id: voiding.r.id, reason: voiding.reason }, `ยกเลิกบิล ${voiding.r.no} และคืนสต็อกแล้ว`)) setVoiding(null)
             }}>ยืนยันยกเลิกบิล</button></>}>
-          <p style={{ marginBottom: 12 }}>ยอด <b>{baht(voiding.r.total)}</b> · {voiding.r.items.length} รายการ — สินค้าจะถูกคืนเข้า Lot เดิม</p>
+          <p style={{ marginBottom: 12 }}>ยอด <b>{baht(voiding.r.total)}</b> · {voiding.r.items.length} รายการ - สินค้าจะถูกคืนเข้า Lot เดิม</p>
           <Field label="เหตุผล *"><input autoFocus value={voiding.reason} onChange={(e) => setVoiding({ ...voiding, reason: e.target.value })} placeholder="เช่น คีย์ผิด / ลูกค้าคืนสินค้า" /></Field>
         </Modal>
       )}

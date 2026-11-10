@@ -13,8 +13,7 @@ const ROLES = ['admin', 'pharmacist', 'cashier']
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 const okId = (s) => /^[a-z0-9]{4,20}$/.test(s || '')
 
-// ---------- session (เก็บในหน่วยความจำ: รีสตาร์ทเซิร์ฟเวอร์ = ต้องล็อกอินใหม่) ----------
-const sessions = new Map() // token -> { staffId, role, exp }
+const sessions = new Map()
 const SESSION_MS = 12 * 60 * 60 * 1000
 
 function auth(req, _res, next) {
@@ -29,7 +28,6 @@ function auth(req, _res, next) {
 const role = (...roles) => (req, _res, next) =>
   roles.includes(req.user.role) ? next() : next(new HttpError(403, 'ไม่มีสิทธิ์ทำรายการนี้'))
 
-// ---------- แปลงแถว DB → รูปแบบที่หน้าเว็บใช้ ----------
 const mapStaff = (r) => ({
   id: r.id, title: r.title, name: r.name, role: r.role, color: r.color,
   license: r.lic_no ? { no: r.lic_no, type: r.lic_type, issued: r.lic_issued, expires: r.lic_expires, university: r.lic_university, degree: r.lic_degree } : null,
@@ -45,13 +43,11 @@ async function move(c, m) {
   )
 }
 
-// =================== PUBLIC ===================
 app.get('/api/health', wrap(async (_req, res) => {
   await pool.query('SELECT 1')
   res.json({ ok: true })
 }))
 
-// หน้าล็อกอินยังไม่ได้ยืนยันตัวตน — ส่งเฉพาะข้อมูลที่ต้องแสดง
 app.get('/api/public/staff', wrap(async (_req, res) => {
   const [rows] = await pool.query('SELECT id, title, name, role, color, lic_no FROM staff WHERE active = 1 ORDER BY created_at, id')
   res.json(rows.map((r) => ({ id: r.id, title: r.title, name: r.name, role: r.role, color: r.color, licenseNo: r.lic_no })))
@@ -66,12 +62,10 @@ app.post('/api/login', wrap(async (req, res) => {
   res.json({ token, staff: mapStaff(s) })
 }))
 
-// =================== ต้องล็อกอิน ===================
 app.use('/api', auth)
 
 app.post('/api/logout', (req, res) => { sessions.delete(req.token); res.json({ ok: true }) })
 
-// โหลดข้อมูลทั้งหมดที่หน้าจอใช้ (เหมาะกับร้านขนาดเล็ก-กลาง)
 app.get('/api/bootstrap', wrap(async (_req, res) => {
   const [[settings]] = await pool.query('SELECT * FROM shop_settings WHERE id = 1')
   const [staff] = await pool.query('SELECT * FROM staff WHERE active = 1 ORDER BY created_at, id')
@@ -113,7 +107,6 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
   })
 }))
 
-// ---------- ตั้งค่าร้าน ----------
 app.put('/api/settings', role('admin'), wrap(async (req, res) => {
   const s = req.body || {}
   if (!s.shopName?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อร้าน')
@@ -126,7 +119,6 @@ app.put('/api/settings', role('admin'), wrap(async (req, res) => {
   res.json({ ok: true })
 }))
 
-// ---------- สินค้า / คลังยา ----------
 app.put('/api/products/:id', role('admin', 'pharmacist'), wrap(async (req, res) => {
   const p = req.body || {}
   const id = req.params.id
@@ -148,12 +140,10 @@ app.put('/api/products/:id', role('admin', 'pharmacist'), wrap(async (req, res) 
 }))
 
 app.delete('/api/products/:id', role('admin', 'pharmacist'), wrap(async (req, res) => {
-  // soft delete — ประวัติการขายยังอ้างอิงได้ (เปลี่ยนบาร์โค้ดเพื่อให้นำบาร์โค้ดเดิมไปใช้ใหม่ได้)
   await pool.query("UPDATE products SET active = 0, barcode = CONCAT(barcode, '#del', id) WHERE id = ? AND active = 1", [req.params.id])
   res.json({ ok: true })
 }))
 
-// รับยาเข้า
 app.post('/api/receive', role('admin', 'pharmacist'), wrap(async (req, res) => {
   const { productId, lotNo, qty, exp, cost, supplier, invoiceNo } = req.body || {}
   const n = parseInt(qty)
@@ -171,7 +161,6 @@ app.post('/api/receive', role('admin', 'pharmacist'), wrap(async (req, res) => {
   res.json({ ok: true })
 }))
 
-// ตัดจำหน่าย/ทำลายทั้ง Lot
 app.post('/api/write-off', role('admin', 'pharmacist'), wrap(async (req, res) => {
   const { productId, lotNo, exp, reason } = req.body || {}
   await tx(async (c) => {
@@ -184,7 +173,6 @@ app.post('/api/write-off', role('admin', 'pharmacist'), wrap(async (req, res) =>
   res.json({ ok: true })
 }))
 
-// ปรับยอดตามการตรวจนับจริง
 app.post('/api/adjust', role('admin', 'pharmacist'), wrap(async (req, res) => {
   const { productId, lotNo, exp, count, reason } = req.body || {}
   const n = parseInt(count)
@@ -202,14 +190,12 @@ app.post('/api/adjust', role('admin', 'pharmacist'), wrap(async (req, res) => {
   res.json({ ok: true })
 }))
 
-// ---------- ขาย (ตัดสต็อกแบบ FEFO: หมดอายุก่อนออกก่อน) ----------
 app.post('/api/checkout', wrap(async (req, res) => {
   const { cart = [], receipt: r = {} } = req.body || {}
   if (!cart.length) throw new HttpError(400, 'ยังไม่มีสินค้าในตะกร้า')
   const today = localDate()
 
   const result = await tx(async (c) => {
-    // ราคา/ประเภทยาอ่านจากฐานข้อมูลเสมอ (ไม่เชื่อค่าจากหน้าจอ)
     const lines = []
     for (const line of cart) {
       const qty = parseInt(line.qty)
@@ -239,7 +225,6 @@ app.post('/api/checkout', wrap(async (req, res) => {
     const received = payment === 'cash' ? Number(r.received) || 0 : total
     if (received < total) throw new HttpError(400, 'รับเงินไม่พอ')
 
-    // เลขที่ใบเสร็จ: R + yymmdd + ลำดับของวัน
     const at = toDT()
     const day = today.slice(2).replace(/-/g, '')
     const [[last]] = await c.query('SELECT no FROM receipts WHERE no LIKE ? ORDER BY no DESC LIMIT 1 FOR UPDATE', [`R${day}-%`])
@@ -281,7 +266,6 @@ app.post('/api/checkout', wrap(async (req, res) => {
   res.json(result)
 }))
 
-// ---------- ยกเลิกบิล → คืนสต็อก ----------
 app.post('/api/receipts/:id/void', role('admin', 'pharmacist'), wrap(async (req, res) => {
   const reason = req.body?.reason?.trim()
   if (!reason) throw new HttpError(400, 'กรุณาระบุเหตุผล')
@@ -306,7 +290,6 @@ app.post('/api/receipts/:id/void', role('admin', 'pharmacist'), wrap(async (req,
   res.json({ ok: true })
 }))
 
-// ---------- พนักงาน / เภสัชกร ----------
 app.put('/api/staff/:id', role('admin'), wrap(async (req, res) => {
   const s = req.body || {}
   const id = req.params.id
@@ -349,7 +332,6 @@ app.delete('/api/staff/:id', role('admin'), wrap(async (req, res) => {
   res.json({ ok: true })
 }))
 
-// ---------- ลูกค้า ----------
 app.post('/api/customers', wrap(async (req, res) => {
   const c = req.body || {}
   if (!c.name?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อลูกค้า')
@@ -361,7 +343,6 @@ app.post('/api/customers', wrap(async (req, res) => {
   res.json({ ok: true, id })
 }))
 
-// ---------- รีเซ็ตเป็นข้อมูลตัวอย่าง ----------
 app.post('/api/admin/reset', role('admin'), wrap(async (_req, res) => {
   await tx(async (c) => { await clearAll(c); await seedDatabase(c) })
   sessions.clear()
@@ -370,19 +351,17 @@ app.post('/api/admin/reset', role('admin'), wrap(async (_req, res) => {
 
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'ไม่พบ API นี้')))
 
-// หลัง npm run build: เปิดหน้าเว็บจากเซิร์ฟเวอร์นี้ได้เลย (ให้เครื่องอื่นในร้านเข้าผ่าน IP เครื่องนี้)
 const dist = fileURLToPath(new URL('../dist/', import.meta.url))
 if (fs.existsSync(dist)) {
   app.use(express.static(dist))
   app.get(/^\/(?!api).*/, (_req, res) => res.sendFile('index.html', { root: dist }))
 }
 
-// ---------- error handler ----------
 const DB_ERRORS = {
-  ECONNREFUSED: 'เชื่อมต่อ MySQL ไม่ได้ — ตรวจสอบว่า MySQL Server เปิดอยู่',
-  ER_ACCESS_DENIED_ERROR: 'MySQL ปฏิเสธการเข้าสู่ระบบ — ตรวจสอบ DB_USER/DB_PASSWORD ในไฟล์ .env',
-  ER_BAD_DB_ERROR: 'ยังไม่มีฐานข้อมูล — รัน npm run db:init',
-  ER_NO_SUCH_TABLE: 'ยังไม่มีตาราง — รัน npm run db:init',
+  ECONNREFUSED: 'เชื่อมต่อ MySQL ไม่ได้ - ตรวจสอบว่า MySQL Server เปิดอยู่',
+  ER_ACCESS_DENIED_ERROR: 'MySQL ปฏิเสธการเข้าสู่ระบบ - ตรวจสอบ DB_USER/DB_PASSWORD ในไฟล์ .env',
+  ER_BAD_DB_ERROR: 'ยังไม่มีฐานข้อมูล - รัน npm run db:init',
+  ER_NO_SUCH_TABLE: 'ยังไม่มีตาราง - รัน npm run db:init',
 }
 app.use((err, _req, res, _next) => {
   const status = err.status || (err.type === 'entity.parse.failed' ? 400 : 500)
@@ -393,7 +372,7 @@ app.use((err, _req, res, _next) => {
 
 const PORT = Number(process.env.PORT || 3001)
 app.listen(PORT, async () => {
-  console.log(`🩺 ยาวิเศษ API → http://localhost:${PORT}`)
-  try { await pool.query('SELECT 1'); console.log('✔ เชื่อมต่อ MySQL สำเร็จ') }
-  catch (e) { console.error('✖ เชื่อมต่อ MySQL ไม่ได้:', e.message, '\n  ตรวจสอบไฟล์ .env แล้วรัน npm run db:init') }
+  console.log(`ยาวิเศษ API: http://localhost:${PORT}`)
+  try { await pool.query('SELECT 1'); console.log('เชื่อมต่อ MySQL สำเร็จ') }
+  catch (e) { console.error('เชื่อมต่อ MySQL ไม่ได้:', e.message, '\n  ตรวจสอบไฟล์ .env แล้วรัน npm run db:init') }
 })

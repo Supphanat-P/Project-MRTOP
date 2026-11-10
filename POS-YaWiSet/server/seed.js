@@ -1,4 +1,3 @@
-// ข้อมูลตัวอย่าง — ทุกชื่อ/เลขที่ใบอนุญาตเป็นข้อมูลสมมติ
 import { hashPin, localDate as d } from './db.js'
 
 const products = [

@@ -1,4 +1,4 @@
-# ยาวิเศษ — ระบบร้านขายยา
+# ยาวิเศษ - ระบบร้านขายยา
 
 React + Vite (หน้าจอ, ดีไซน์จาก TemplateMo 622 Clearwave) → Node.js/Express (API) → **MySQL** (จัดการผ่าน MySQL Workbench)
 
@@ -16,7 +16,7 @@ React + Vite (หน้าจอ, ดีไซน์จาก TemplateMo 622 Cle
    npm install
    npm run db:init      # สร้าง database yawiset_pos + ตาราง + ข้อมูลตัวอย่าง
    ```
-   หรือสร้างเองใน Workbench: เปิด `server/schema.sql` → กด ⚡ Execute แล้วรัน `npm run db:init` เพื่อใส่ข้อมูลตัวอย่าง
+   หรือสร้างเองใน Workbench: เปิด `server/schema.sql` → กด Execute แล้วรัน `npm run db:init` เพื่อใส่ข้อมูลตัวอย่าง
 4. เปิด 2 terminal
    ```bash
    npm run server       # API → http://localhost:3001
@@ -30,7 +30,7 @@ PIN ข้อมูลตัวอย่าง: `1111` ผู้ดูแล/เ
 | `npm run db:init` | สร้างตาราง (ถ้ายังไม่มี) + ใส่ข้อมูลตัวอย่างถ้าฐานข้อมูลยังว่าง |
 | `npm run db:reset` | **ล้างข้อมูลทั้งหมด** แล้วใส่ข้อมูลตัวอย่างใหม่ |
 | `npm run server:watch` | รัน API แบบรีสตาร์ทอัตโนมัติเมื่อแก้โค้ด |
-| `npm run build` แล้ว `npm run server` | เปิดหน้าเว็บจาก http://localhost:3001 ได้เลย — เครื่องอื่นในร้านเข้าผ่าน IP เครื่องนี้ |
+| `npm run build` แล้ว `npm run server` | เปิดหน้าเว็บจาก http://localhost:3001 ได้เลย - เครื่องอื่นในร้านเข้าผ่าน IP เครื่องนี้ |
 
 ## หน้าจอ
 | หน้า | ความสามารถ |
@@ -51,9 +51,9 @@ PIN ข้อมูลตัวอย่าง: `1111` ผู้ดูแล/เ
 | `products` / `product_lots` | สินค้า และสต็อกแยกตาม Lot + วันหมดอายุ |
 | `receipts` / `receipt_items` / `receipt_item_lots` | ใบเสร็จ รายการ และ Lot ที่ถูกตัด |
 | `stock_moves` | ความเคลื่อนไหวสต็อก: รับเข้า ขาย ตัดจำหน่าย ยกเลิกบิล ปรับยอด |
-| `v_stock` (view) | สต็อกคงเหลือ/หมดอายุต่อสินค้า — `SELECT * FROM v_stock;` |
+| `v_stock` (view) | สต็อกคงเหลือ/หมดอายุต่อสินค้า - `SELECT * FROM v_stock;` |
 
-เวลา (`at`) เก็บเป็น UTC — ใน Workbench ดูเป็นเวลาไทยด้วย `CONVERT_TZ(at,'+00:00','+07:00')`
+เวลา (`at`) เก็บเป็น UTC - ใน Workbench ดูเป็นเวลาไทยด้วย `CONVERT_TZ(at,'+00:00','+07:00')`
 สำรองข้อมูล: Workbench → **Server → Data Export** (กู้คืนด้วย Data Import)
 
 ## กฎที่ตรวจฝั่งเซิร์ฟเวอร์

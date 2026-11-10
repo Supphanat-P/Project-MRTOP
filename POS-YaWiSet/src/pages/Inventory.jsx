@@ -42,7 +42,7 @@ export default function Inventory() {
   return (
     <div className="page">
       <PageHead label="Inventory" title="คลังยา &" em="สต็อก" sub="จัดการสินค้า รับยาเข้า ตรวจนับ และติดตามวันหมดอายุแยกตาม Lot">
-        <button className="btn" onClick={exportCSV}>⬇ CSV</button>
+        <button className="btn" onClick={exportCSV}>CSV</button>
         {canEdit && <button className="btn" onClick={() => setRecv({ productId: state.products[0]?.id || '', lotNo: '', exp: today(365), qty: '', cost: '', supplier: '', invoiceNo: '' })}>＋ รับยาเข้า</button>}
         {canEdit && <button className="btn primary" onClick={() => setEdit({ ...blank })}>＋ เพิ่มสินค้า</button>}
       </PageHead>

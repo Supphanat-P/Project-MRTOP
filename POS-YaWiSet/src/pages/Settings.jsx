@@ -76,11 +76,11 @@ export default function Settings() {
         <div className="card">
           <h3>ฐานข้อมูล & การสำรองข้อมูล</h3>
           <p className="muted small" style={{ lineHeight: 1.7 }}>
-            ข้อมูลทั้งหมดเก็บใน MySQL ฐานข้อมูล <code>yawiset_pos</code> — เปิดดู/แก้ได้ใน MySQL Workbench
+            ข้อมูลทั้งหมดเก็บใน MySQL ฐานข้อมูล <code>yawiset_pos</code> - เปิดดู/แก้ได้ใน MySQL Workbench
             (ลองคำสั่ง <code>SELECT * FROM v_stock;</code>) สำรองข้อมูลด้วยเมนู <b>Server → Data Export</b> และกู้คืนด้วย <b>Data Import</b>
           </p>
           <div className="row" style={{ marginTop: 14 }}>
-            <button className="btn" onClick={exportJSON}>⬇ ส่งออก JSON</button>
+            <button className="btn" onClick={exportJSON}>ส่งออก JSON</button>
             {isAdmin && <button className="btn danger" onClick={() => confirm('ล้างข้อมูลทั้งหมดในฐานข้อมูล แล้วใส่ข้อมูลตัวอย่างใหม่?\nทุกคนจะถูกออกจากระบบ และย้อนกลับไม่ได้') && act('reset')}>รีเซ็ตเป็นข้อมูลตัวอย่าง</button>}
           </div>
         </div>

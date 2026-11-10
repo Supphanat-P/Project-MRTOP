@@ -45,14 +45,14 @@ function Login() {
   return (
     <div className="login">
       <div className="login-hero">
-        <div className="hero-badge"><b>✚</b> ระบบร้านขายยา · <strong style={{ color: 'var(--accent)' }}>เชื่อมต่อ MySQL</strong></div>
+        <div className="hero-badge"><b>✚</b> ระบบร้านขายยา · <strong style={{ color: 'var(--accent)' }}>ใช้ฐานข้อมูล MySQL</strong></div>
         <h1>ขายยา จัดการคลัง <em>อย่างมั่นใจ</em></h1>
-        <p>POS สำหรับร้านขายยา — ตัดสต็อกตาม Lot และวันหมดอายุ ออกใบเสร็จและฉลากยา ตรวจสิทธิ์เภสัชกรก่อนจ่ายยาอันตราย พร้อมทะเบียนใบประกอบวิชาชีพ</p>
+        <p>ร้านขายยา - ตัดสต็อกตาม Lot และวันหมดอายุ ออกใบเสร็จและฉลากยา ตรวจสิทธิ์เภสัชกรก่อนจ่ายยาอันตราย พร้อมทะเบียนใบประกอบวิชาชีพ</p>
         <div className="trust"><span>FEFO หมดอายุก่อนออกก่อน</span><span>ใบเสร็จ & ฉลากยา</span><span>ทะเบียนเภสัชกร</span></div>
       </div>
 
       <div className="window">
-        <div className="window-bar"><i /><i /><i /><span className="title">เข้าสู่ระบบ — ยาวิเศษ</span></div>
+        <div className="window-bar"><i /><i /><i /><span className="title">เข้าสู่ระบบ - ยาวิเศษ</span></div>
         <div className="window-body">
           {loadErr ? (
             <>
@@ -60,7 +60,7 @@ function Login() {
               <p className="muted small" style={{ margin: '12px 0' }}>ตรวจสอบว่า MySQL เปิดอยู่ รัน <code>npm run db:init</code> และ <code>npm run server</code> แล้ว</p>
               <button className="btn" onClick={loadStaff}>ลองใหม่</button>
             </>
-          ) : !staff ? <p className="muted">กำลังเชื่อมต่อฐานข้อมูล…</p> : !sel ? (
+          ) : !staff ? <p className="muted">กำลังเชื่อมต่อฐานข้อมูล...</p> : !sel ? (
             <>
               <h3>เลือกผู้ใช้งาน</h3>
               <div className="user-list">
@@ -70,7 +70,7 @@ function Login() {
                     <span><b>{s.title} {s.name}</b><br /><small className="muted">{ROLE_LABEL[s.role]}{s.licenseNo ? ` · ${s.licenseNo}` : ''}</small></span>
                   </button>
                 ))}
-                {!staff.length && <div className="alert warn">ยังไม่มีพนักงานในระบบ — รัน <code>npm run db:init</code></div>}
+                {!staff.length && <div className="alert warn">ยังไม่มีพนักงานในระบบ - รัน <code>npm run db:init</code></div>}
               </div>
               <p className="muted small" style={{ marginTop: 14 }}>ข้อมูลตัวอย่าง: PIN 1111 ผู้ดูแล · 2222 เภสัชกร · 3333 พนักงานขาย</p>
             </>
@@ -88,7 +88,7 @@ function Login() {
               {err && <div className="alert danger" style={{ marginBottom: 12 }}>{err}</div>}
               <div className="row">
                 <button type="button" className="btn" onClick={() => setSel(null)}>← ย้อนกลับ</button>
-                <button className="btn primary" style={{ flex: 1 }} disabled={busy}>{busy ? 'กำลังตรวจสอบ…' : 'เข้าสู่ระบบ →'}</button>
+                <button className="btn primary" style={{ flex: 1 }} disabled={busy}>{busy ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</button>
               </div>
             </form>
           )}
@@ -110,7 +110,7 @@ function Shell() {
     <>
       <nav className="nav no-print">
         <div className="nav-inner">
-          <div className="nav-logo"><span className="mark">✚</span>ยาวิเศษ<span>POS</span></div>
+          <div className="nav-logo"><span className="mark">✚</span>ยาวิเศษ</div>
           <div className="nav-links">
             {NAV.map((n) => <button key={n.key} className={page === n.key ? 'active' : ''} onClick={() => go(n.key)}>{n.label}</button>)}
           </div>
@@ -144,7 +144,7 @@ function Root() {
               <button className="btn primary" onClick={refresh}>ลองใหม่</button>
               <button className="btn" onClick={logout}>ออกจากระบบ</button>
             </div>
-          </> : <p className="muted">กำลังโหลดข้อมูลจากฐานข้อมูล…</p>}
+          </> : <p className="muted">กำลังโหลดข้อมูลจากฐานข้อมูล...</p>}
         </div></div>
       </div>
     )

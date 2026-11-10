@@ -1,13 +1,7 @@
--- =========================================================
---  ยาวิเศษ— โครงสร้างฐานข้อมูล MySQL 8.x
---  เปิดไฟล์นี้ใน MySQL Workbench แล้วกด ⚡ Execute ได้เลย
---  (หรือรัน `npm run db:init` ซึ่งจะสร้างตาราง + ใส่ข้อมูลตัวอย่างให้)
--- =========================================================
 CREATE DATABASE IF NOT EXISTS yawiset_pos
   DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE yawiset_pos;
 
--- ข้อมูลร้าน (มีแถวเดียว id = 1)
 CREATE TABLE IF NOT EXISTS shop_settings (
   id           TINYINT PRIMARY KEY DEFAULT 1,
   shop_name    VARCHAR(200) NOT NULL,
@@ -19,7 +13,6 @@ CREATE TABLE IF NOT EXISTS shop_settings (
   receipt_note VARCHAR(300)
 ) ENGINE=InnoDB;
 
--- พนักงาน / เภสัชกร (+ ข้อมูลใบประกอบวิชาชีพ)
 CREATE TABLE IF NOT EXISTS staff (
   id              VARCHAR(20) PRIMARY KEY,
   title           VARCHAR(20)  NOT NULL,
@@ -61,7 +54,6 @@ CREATE TABLE IF NOT EXISTS products (
   UNIQUE KEY uq_barcode (barcode)
 ) ENGINE=InnoDB;
 
--- สต็อกแยกตาม Lot / วันหมดอายุ
 CREATE TABLE IF NOT EXISTS product_lots (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   product_id  VARCHAR(20) NOT NULL,
@@ -77,7 +69,7 @@ CREATE TABLE IF NOT EXISTS product_lots (
 CREATE TABLE IF NOT EXISTS receipts (
   id            VARCHAR(20) PRIMARY KEY,
   no            VARCHAR(30) NOT NULL,
-  at            DATETIME NOT NULL,            -- เก็บเป็นเวลา UTC
+  at            DATETIME NOT NULL,
   customer_id   VARCHAR(20) NULL,
   staff_id      VARCHAR(20) NOT NULL,
   pharmacist_id VARCHAR(20) NULL,
@@ -114,7 +106,6 @@ CREATE TABLE IF NOT EXISTS receipt_items (
   CONSTRAINT fk_ri_product FOREIGN KEY (product_id) REFERENCES products(id)
 ) ENGINE=InnoDB;
 
--- ยาแต่ละรายการตัดจาก Lot ไหนเท่าไร (ใช้คืนสต็อกตอนยกเลิกบิล)
 CREATE TABLE IF NOT EXISTS receipt_item_lots (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   receipt_item_id INT NOT NULL,
@@ -124,7 +115,6 @@ CREATE TABLE IF NOT EXISTS receipt_item_lots (
   CONSTRAINT fk_ril_item FOREIGN KEY (receipt_item_id) REFERENCES receipt_items(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- ความเคลื่อนไหวสต็อก: รับเข้า / ขาย / ตัดจำหน่าย / ยกเลิกบิล / ปรับยอด
 CREATE TABLE IF NOT EXISTS stock_moves (
   id          INT AUTO_INCREMENT PRIMARY KEY,
   at          DATETIME NOT NULL,
@@ -133,15 +123,14 @@ CREATE TABLE IF NOT EXISTS stock_moves (
   name        VARCHAR(200) NOT NULL,
   lot_no      VARCHAR(200),
   exp         DATE NULL,
-  qty         INT NOT NULL,                 -- + เข้า / - ออก
-  ref         VARCHAR(100),                 -- เลขใบเสร็จ / เลขใบส่งของ
+  qty         INT NOT NULL,
+  ref         VARCHAR(100),
   note        VARCHAR(300),
   staff_id    VARCHAR(20) NULL,
   KEY ix_move_at (at),
   KEY ix_move_product (product_id)
 ) ENGINE=InnoDB;
 
--- มุมมองสต็อกคงเหลือ (ดูใน Workbench: SELECT * FROM v_stock;)
 CREATE OR REPLACE VIEW v_stock AS
 SELECT p.id, p.barcode, p.name, p.category, p.unit, p.min_stock,
        COALESCE(SUM(CASE WHEN l.exp >= CURDATE() THEN l.qty END), 0) AS stock_ok,

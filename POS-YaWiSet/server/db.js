@@ -8,15 +8,14 @@ export const dbConfig = {
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  timezone: 'Z',          // เก็บ/อ่าน DATETIME เป็น UTC
-  dateStrings: true,      // DATE → 'YYYY-MM-DD'
-  decimalNumbers: true,   // DECIMAL → number
+  timezone: 'Z',
+  dateStrings: true,
+  decimalNumbers: true,
   charset: 'utf8mb4',
 }
 
 export const pool = mysql.createPool({ ...dbConfig, database: DB_NAME, connectionLimit: 10 })
 
-// รันฟังก์ชันใน transaction เดียว — error ระหว่างทางจะ rollback ทั้งหมด
 export async function tx(fn) {
   const conn = await pool.getConnection()
   try {
@@ -34,18 +33,15 @@ export async function tx(fn) {
 
 export const newId = () => crypto.randomBytes(5).toString('hex')
 
-// ISO (UTC) ↔ MySQL DATETIME
 export const toDT = (iso) => new Date(iso || Date.now()).toISOString().slice(0, 19).replace('T', ' ')
 export const fromDT = (s) => (s ? s.replace(' ', 'T') + 'Z' : null)
 
-// วันที่ตามเวลาเครื่องเซิร์ฟเวอร์ (เวลาไทย) — ใช้เช็กวันหมดอายุ และเลขที่ใบเสร็จรายวัน
 export const localDate = (offsetDays = 0) => {
   const t = new Date()
   t.setDate(t.getDate() + offsetDays)
   return t.toLocaleDateString('sv-SE')
 }
 
-// PIN hash ด้วย scrypt (ไม่ต้องลงไลบรารีเพิ่ม)
 export const hashPin = (pin) => {
   const salt = crypto.randomBytes(16).toString('hex')
   return salt + ':' + crypto.scryptSync(String(pin), salt, 32).toString('hex')

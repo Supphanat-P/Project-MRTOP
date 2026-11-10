@@ -37,7 +37,6 @@ export default function POS() {
     setCart(n ? cart.map((c) => (c.productId === id ? { ...c, qty: n } : c)) : cart.filter((c) => c.productId !== id))
   }
 
-  // สแกนบาร์โค้ดแล้วกด Enter → เพิ่มลงตะกร้าทันที
   const onScan = (e) => {
     if (e.key !== 'Enter') return
     const p = state.products.find((x) => x.barcode === q.trim()) || (found.length === 1 ? found[0] : null)
@@ -112,7 +111,7 @@ export default function POS() {
                 {state.customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ''}</option>)}
               </select>
             </Field>
-            {cust?.allergies && <div className="alert danger" style={{ marginTop: 8 }}>⚠ ประวัติแพ้ยา: {cust.allergies}</div>}
+            {cust?.allergies && <div className="alert danger" style={{ marginTop: 8 }}>ประวัติแพ้ยา: {cust.allergies}</div>}
 
             <div className="cart-list" style={{ marginTop: 12 }}>
               {lines.map((l) => (
@@ -134,7 +133,7 @@ export default function POS() {
               <fieldset className="fs">
                 <legend>เภสัชกรผู้จ่ายยา {needPharm && '*'}</legend>
                 <select value={pharmacistId} onChange={(e) => setPharmacistId(e.target.value)}>
-                  <option value="">— เลือกเภสัชกร —</option>
+                  <option value="">เลือกเภสัชกร</option>
                   {pharmacists.map((s) => <option key={s.id} value={s.id}>{s.title} {s.name} · {s.license.no}</option>)}
                 </select>
                 {needRx && (
@@ -154,7 +153,7 @@ export default function POS() {
             </div>
 
             <div className="pay-opts">
-              {[['cash', '💵 เงินสด'], ['qr', '▦ พร้อมเพย์'], ['card', '💳 บัตร']].map(([k, v]) => (
+              {[['cash', 'เงินสด'], ['qr', 'พร้อมเพย์'], ['card', 'บัตร']].map(([k, v]) => (
                 <button key={k} className={payment === k ? 'on' : ''} onClick={() => setPayment(k)}>{v}</button>
               ))}
             </div>
@@ -169,10 +168,10 @@ export default function POS() {
                 </div>
               </div>
             )}
-            {payment === 'qr' && <div className="qr-box" style={{ marginTop: 12 }}><div className="fake-qr" /><div>พร้อมเพย์ {state.settings.promptPay}<br /><b>{baht(total)}</b><br /><small className="muted">QR ตัวอย่าง — ยังไม่เชื่อมผู้ให้บริการชำระเงิน</small></div></div>}
+            {payment === 'qr' && <div className="qr-box" style={{ marginTop: 12 }}><div className="fake-qr" /><div>พร้อมเพย์ {state.settings.promptPay}<br /><b>{baht(total)}</b><br /><small className="muted">QR ตัวอย่าง - ยังไม่เชื่อมผู้ให้บริการชำระเงิน</small></div></div>}
 
             <button className="btn primary lg full" style={{ marginTop: 16 }} disabled={busy || !lines.length} onClick={checkout}>
-              {busy ? 'กำลังบันทึก…' : `ชำระเงิน ${baht(total)} →`}
+              {busy ? 'กำลังบันทึก...' : `ชำระเงิน ${baht(total)}`}
             </button>
           </div>
         </aside>
@@ -186,7 +185,7 @@ export default function POS() {
               <button className={printMode === 'label' ? 'on' : ''} onClick={() => setPrintMode('label')}>ฉลากยา</button>
             </div>
             <button className="btn" onClick={() => setDone(null)}>ปิด</button>
-            <button className="btn primary" onClick={printModal}>🖨 พิมพ์</button>
+            <button className="btn primary" onClick={printModal}>พิมพ์</button>
           </>}>
           {printMode === 'receipt' ? <ReceiptView receipt={doneReceipt} />
             : doneReceipt.items.map((it, i) => <DrugLabel key={i} item={it} receipt={doneReceipt} />)}
