@@ -1,16 +1,84 @@
-# React + Vite
+# ยาวิเศษ POS — ระบบ POS ร้านขายยา
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite (หน้าจอ, ดีไซน์จาก TemplateMo 622 Clearwave) → Node.js/Express (API) → **MySQL** (จัดการผ่าน MySQL Workbench)
 
-Currently, two official plugins are available:
+```
+เบราว์เซอร์ ──/api──► server/index.js (พอร์ต 3001) ──► MySQL (yawiset_pos)
+ (Vite 5173 proxy /api)                                   ▲
+                                              MySQL Workbench ดู/แก้/สำรองข้อมูล
+```
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## ติดตั้งครั้งแรก
+1. ติดตั้งและเปิด **MySQL Server 8** (ตรวจได้ใน Workbench ว่าเชื่อมต่อ Local instance ได้)
+2. คัดลอก `.env.example` เป็น `.env` แล้วใส่ user/password ของ MySQL (ชุดเดียวกับที่ล็อกอินใน Workbench)
+3. ติดตั้งแพ็กเกจและสร้างฐานข้อมูล
+   ```bash
+   npm install
+   npm run db:init      # สร้าง database yawiset_pos + ตาราง + ข้อมูลตัวอย่าง
+   ```
+   หรือสร้างเองใน Workbench: เปิด `server/schema.sql` → กด ⚡ Execute แล้วรัน `npm run db:init` เพื่อใส่ข้อมูลตัวอย่าง
+4. เปิด 2 terminal
+   ```bash
+   npm run server       # API → http://localhost:3001
+   npm run dev          # หน้าเว็บ → http://localhost:5173
+   ```
 
-## React Compiler
+PIN ข้อมูลตัวอย่าง: `1111` ผู้ดูแล/เภสัชกร · `2222` เภสัชกร · `3333` พนักงานขาย
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| คำสั่ง | ใช้ทำอะไร |
+|---|---|
+| `npm run db:init` | สร้างตาราง (ถ้ายังไม่มี) + ใส่ข้อมูลตัวอย่างถ้าฐานข้อมูลยังว่าง |
+| `npm run db:reset` | **ล้างข้อมูลทั้งหมด** แล้วใส่ข้อมูลตัวอย่างใหม่ |
+| `npm run server:watch` | รัน API แบบรีสตาร์ทอัตโนมัติเมื่อแก้โค้ด |
+| `npm run build` แล้ว `npm run server` | เปิดหน้าเว็บจาก http://localhost:3001 ได้เลย — เครื่องอื่นในร้านเข้าผ่าน IP เครื่องนี้ |
 
-## Expanding the Oxlint configuration
+## หน้าจอ
+| หน้า | ความสามารถ |
+|---|---|
+| ภาพรวม | ยอดขาย/กำไรวันนี้, กราฟ 7 วัน, สินค้าขายดี, แจ้งเตือนสต็อกต่ำ ยาใกล้หมดอายุ และใบอนุญาตเภสัชกรใกล้หมดอายุ |
+| ขายหน้าร้าน | ค้นหา/สแกนบาร์โค้ด, ตะกร้า, ประวัติแพ้ยาลูกค้า, ยาอันตรายต้องเลือกเภสัชกร, ยาควบคุมพิเศษต้องมีใบสั่งยา, เงินสด/พร้อมเพย์/บัตร, พิมพ์ใบเสร็จและฉลากยา |
+| คลังยา & สต็อก | เพิ่ม/แก้สินค้า, รับยาเข้าแยก Lot + วันหมดอายุ, ตรวจนับปรับยอด, ตัดจำหน่าย, ประวัติความเคลื่อนไหวสต็อก, ส่งออก CSV |
+| ใบเสร็จ | ค้นหาตามช่วงวัน, พิมพ์ย้อนหลัง, ยกเลิกบิล (คืนสต็อกเข้า Lot เดิม), ส่งออก CSV |
+| เภสัชกร / พนักงาน | ทะเบียนพนักงาน + **เอกสารจำลองใบประกอบวิชาชีพเภสัชกรรม** (พิมพ์ได้), สถานะใบอนุญาต, สิทธิ์ตามบทบาท |
+| ร้านค้า | ข้อมูลร้านบนใบเสร็จ, ลูกค้า/ประวัติแพ้ยา, ส่งออก JSON, รีเซ็ตข้อมูลตัวอย่าง |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## ตารางในฐานข้อมูล
+| ตาราง | เก็บอะไร |
+|---|---|
+| `shop_settings` | ข้อมูลร้านบนใบเสร็จ |
+| `staff` | พนักงาน/เภสัชกร, PIN (เข้ารหัส scrypt), ข้อมูลใบประกอบวิชาชีพ |
+| `customers` | ลูกค้า + ประวัติแพ้ยา |
+| `products` / `product_lots` | สินค้า และสต็อกแยกตาม Lot + วันหมดอายุ |
+| `receipts` / `receipt_items` / `receipt_item_lots` | ใบเสร็จ รายการ และ Lot ที่ถูกตัด |
+| `stock_moves` | ความเคลื่อนไหวสต็อก: รับเข้า ขาย ตัดจำหน่าย ยกเลิกบิล ปรับยอด |
+| `v_stock` (view) | สต็อกคงเหลือ/หมดอายุต่อสินค้า — `SELECT * FROM v_stock;` |
+
+เวลา (`at`) เก็บเป็น UTC — ใน Workbench ดูเป็นเวลาไทยด้วย `CONVERT_TZ(at,'+00:00','+07:00')`
+สำรองข้อมูล: Workbench → **Server → Data Export** (กู้คืนด้วย Data Import)
+
+## กฎที่ตรวจฝั่งเซิร์ฟเวอร์
+- ราคาและประเภทยาอ่านจากฐานข้อมูลตอนขาย (แก้ราคาจากหน้าเว็บไม่ได้)
+- ตัดสต็อกแบบ FEFO (หมดอายุก่อนออกก่อน) ใน transaction + ล็อกแถว ป้องกันขายเกินเมื่อขายพร้อมกันหลายเครื่อง และไม่ขาย Lot ที่หมดอายุ
+- ยาอันตราย/ควบคุมพิเศษ ต้องมีเภสัชกรที่ใบอนุญาตยังไม่หมดอายุ · ยาควบคุมพิเศษต้องมีเลขใบสั่งยาและแพทย์
+- สิทธิ์ตามบทบาทตรวจที่ API ทุกเส้น · Session เก็บในหน่วยความจำ (รีสตาร์ทเซิร์ฟเวอร์ = ล็อกอินใหม่)
+
+## หมายเหตุ
+- ชื่อบุคคล เลขใบอนุญาต และเอกสารใบประกอบวิชาชีพเป็น **ข้อมูลสมมติ/เอกสารจำลอง** มีลายน้ำ และไม่ใช้ตราหรือแบบฟอร์มของหน่วยงานจริง
+- QR พร้อมเพย์เป็นภาพตัวอย่าง ยังไม่เชื่อมผู้ให้บริการชำระเงิน
+- ดีไซน์ดัดแปลงจาก [TemplateMo 622 Clearwave](https://templatemo.com/tm-622-clearwave) (ใช้ได้ทั้งส่วนตัวและเชิงพาณิชย์)
+
+## โครงสร้าง
+```
+server/
+  schema.sql         โครงสร้างตาราง (เปิดใน Workbench ได้)
+  index.js           Express API + กฎทางธุรกิจ
+  db.js              connection pool, transaction, hash PIN
+  seed.js, init-db.js  ข้อมูลตัวอย่าง / สร้าง-รีเซ็ตฐานข้อมูล
+src/
+  App.jsx            เมนู + ล็อกอิน
+  api.js, store.jsx  เรียก API + state กลาง
+  utils.js           ฟังก์ชันช่วย (วันที่ไทย, สกุลเงิน, CSV, สถานะใบอนุญาต)
+  index.css          สไตล์ Clearwave
+  components/        ui, LicenseDoc (ใบประกอบวิชาชีพจำลอง), ReceiptView (ใบเสร็จ/ฉลากยา)
+  pages/             Dashboard, POS, Inventory, Receipts, Staff, Settings
+```

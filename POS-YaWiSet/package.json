@@ -5,13 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node --env-file=.env server/index.js",
+    "server:watch": "node --watch --env-file=.env server/index.js",
+    "db:init": "node --env-file=.env server/init-db.js",
+    "db:reset": "node --env-file=.env server/init-db.js --reset",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.0"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",
