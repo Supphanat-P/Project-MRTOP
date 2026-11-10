@@ -25,3 +25,6 @@ dist-ssr
 
 # MySQL credentials
 .env
+
+# Downloaded template source (reference only, not part of the app)
+templatemo_622_clearwave/
