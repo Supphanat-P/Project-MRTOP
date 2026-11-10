@@ -1,4 +1,4 @@
-# ยาวิเศษ POS — ระบบ POS ร้านขายยา
+# ยาวิเศษ — ระบบร้านขายยา
 
 React + Vite (หน้าจอ, ดีไซน์จาก TemplateMo 622 Clearwave) → Node.js/Express (API) → **MySQL** (จัดการผ่าน MySQL Workbench)
 

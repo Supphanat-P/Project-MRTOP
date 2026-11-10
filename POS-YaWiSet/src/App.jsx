@@ -52,7 +52,7 @@ function Login() {
       </div>
 
       <div className="window">
-        <div className="window-bar"><i /><i /><i /><span className="title">เข้าสู่ระบบ — ยาวิเศษ POS</span></div>
+        <div className="window-bar"><i /><i /><i /><span className="title">เข้าสู่ระบบ — ยาวิเศษ</span></div>
         <div className="window-body">
           {loadErr ? (
             <>
