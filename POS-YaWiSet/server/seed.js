@@ -1,4 +1,4 @@
-import { hashPin, localDate as d } from './db.js'
+import { hashPin, licenseExpiry, localDate as d } from './db.js'
 
 const products = [
   ['p1', '8850001000011', 'พาราเซตามอล 500 มก.', 'Paracetamol', 'ยาสามัญประจำบ้าน', 'แผง', 15, 8, 30, 'รับประทานครั้งละ 1-2 เม็ด ทุก 4-6 ชม. เมื่อมีอาการ ไม่เกิน 8 เม็ด/วัน', [['PA2411', 80, 420], ['PA2402', 12, 25]]],
@@ -14,9 +14,10 @@ const products = [
 ]
 
 const LIC_TYPE = 'ใบอนุญาตประกอบวิชาชีพเภสัชกรรม'
+const fiveYearsAgo = (daysLeft) => { const t = new Date(d(daysLeft) + 'T00:00:00'); t.setFullYear(t.getFullYear() - 5); return t.toLocaleDateString('sv-SE') }
 const staff = [
-  ['s1', 'ภก.', 'สมชาย ใจดี', 'admin', '1111', '#1A7A6E', ['ภ.99001', -1800, 1800, 'มหาวิทยาลัยตัวอย่าง', 'เภสัชศาสตรบัณฑิต']],
-  ['s2', 'ภญ.', 'สุภาพร รักษ์ยา', 'pharmacist', '2222', '#7c3aed', ['ภ.99002', -1790, 20, 'มหาวิทยาลัยสาธิต', 'เภสัชศาสตรบัณฑิต (การบริบาลทางเภสัชกรรม)']],
+  ['s1', 'ภก.', 'สมชาย ใจดี', 'admin', '1111', '#1A7A6E', ['ภ.99001', '2014-06-01', 'มหาวิทยาลัยตัวอย่าง', 'เภสัชศาสตรบัณฑิต']],
+  ['s2', 'ภญ.', 'สุภาพร รักษ์ยา', 'pharmacist', '2222', '#7c3aed', ['ภ.99002', fiveYearsAgo(20), 'มหาวิทยาลัยสาธิต', 'เภสัชศาสตรบัณฑิต (การบริบาลทางเภสัชกรรม)']],
 ]
 
 const TABLES_CLEAR_ORDER = ['receipt_item_lots', 'receipt_items', 'receipts', 'stock_moves', 'product_lots', 'products', 'customers', 'staff', 'shop_settings']
@@ -35,7 +36,7 @@ export async function seedDatabase(conn) {
     await conn.query(
       `INSERT INTO staff (id, title, name, role, pin_hash, color, lic_no, lic_type, lic_issued, lic_expires, lic_university, lic_degree)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, title, name, role, hashPin(pin), color, l?.[0] ?? null, l ? LIC_TYPE : null, l ? d(l[1]) : null, l ? d(l[2]) : null, l?.[3] ?? null, l?.[4] ?? null],
+      [id, title, name, role, hashPin(pin), color, l?.[0] ?? null, l ? LIC_TYPE : null, l?.[1] ?? null, licenseExpiry(l?.[1]), l?.[2] ?? null, l?.[3] ?? null],
     )
   }
   const at = new Date().toISOString().slice(0, 19).replace('T', ' ')

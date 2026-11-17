@@ -56,3 +56,14 @@ export const verifyPin = (pin, stored) => {
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status }
 }
+
+export const LIFETIME_LAST_YEAR = 2015
+
+export const licenseExpiry = (issued) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(issued || '')
+  if (!m) return null
+  const [y, mo, d] = m.slice(1).map(Number)
+  if (y <= LIFETIME_LAST_YEAR) return null
+  const lastDay = new Date(Date.UTC(y + 5, mo, 0)).getUTCDate()
+  return `${y + 5}-${m[2]}-${String(Math.min(d, lastDay)).padStart(2, '0')}`
+}

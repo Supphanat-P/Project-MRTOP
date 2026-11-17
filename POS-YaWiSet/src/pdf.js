@@ -1,6 +1,6 @@
 import regularUrl from './assets/fonts/Sarabun-Regular.ttf?url'
 import boldUrl from './assets/fonts/Sarabun-Bold.ttf?url'
-import { baht, licenseStatus, PAY_LABEL, thDate, thDateLong } from './utils.js'
+import { baht, isLifetime, licenseStatus, PAY_LABEL, thDate, thDateLong } from './utils.js'
 
 const MM = 72 / 25.4
 const ACCENT = '#1A7A6E'
@@ -192,7 +192,7 @@ export function licenseDoc(staff, shop) {
                     detail('วุฒิการศึกษา', lic.degree),
                     detail('สถาบันที่สำเร็จการศึกษา', lic.university),
                     detail('วันที่ออกใบอนุญาต', thDateLong(lic.issued)),
-                    detail('ใช้ได้ถึงวันที่', `${thDateLong(lic.expires)} · ${st.label}`, expColor ? { color: expColor, bold: true } : {}),
+                    detail('ใช้ได้ถึงวันที่', isLifetime(lic) ? 'ตลอดชีพ' : `${thDateLong(lic.expires)} · ${st.label}`, expColor ? { color: expColor, bold: true } : {}),
                   ],
                 },
                 layout: 'noBorders',

@@ -79,8 +79,24 @@ export const expStatus = (exp) => {
   return { cls: 'ok', label: thDate(exp) }
 }
 
+export const LIFETIME_LAST_YEAR = 2015
+
+export const licenseExpiry = (issued) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(issued || '')
+  if (!m) return null
+  const [y, mo, d] = m.slice(1).map(Number)
+  if (y <= LIFETIME_LAST_YEAR) return null
+  const lastDay = new Date(Date.UTC(y + 5, mo, 0)).getUTCDate()
+  return `${y + 5}-${m[2]}-${String(Math.min(d, lastDay)).padStart(2, '0')}`
+}
+
+export const isLifetime = (lic) => !!lic && !lic.expires
+
+export const licenseUntil = (lic, long = false) => (isLifetime(lic) ? 'ตลอดชีพ' : long ? thDateLong(lic?.expires) : thDate(lic?.expires))
+
 export const licenseStatus = (lic) => {
   if (!lic) return { key: 'none', label: 'ไม่มีใบอนุญาต', cls: 'muted' }
+  if (isLifetime(lic)) return { key: 'ok', label: 'ตลอดชีพ', cls: 'ok', days: Infinity }
   const n = daysUntil(lic.expires)
   if (n < 0) return { key: 'expired', label: 'หมดอายุแล้ว', cls: 'danger', days: n }
   if (n <= 60) return { key: 'soon', label: `ใกล้หมดอายุ (${n} วัน)`, cls: 'warn', days: n }

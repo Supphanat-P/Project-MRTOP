@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { licenseStatus, ROLE_LABEL, thDate, today, uid } from '../utils.js'
+import { licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, ROLE_LABEL, today, uid } from '../utils.js'
 import { Avatar, Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
 import LicenseDoc from '../components/LicenseDoc.jsx'
+import ThaiDateInput from '../components/ThaiDateInput.jsx'
 import PrintButtons from '../components/PrintButtons.jsx'
 import { licenseDoc } from '../pdf.js'
 
@@ -18,7 +19,7 @@ export default function Staff() {
   const viewing = state.staff.find((s) => s.id === doc)
 
   const blank = () => ({ id: '', title: 'ภก.', name: '', role: 'pharmacist', pin: '', color: COLORS[state.staff.length % COLORS.length],
-    license: { no: '', type: LIC_TYPE, issued: today(), expires: today(365 * 5), university: '', degree: 'เภสัชศาสตรบัณฑิต' } })
+    license: { no: '', type: LIC_TYPE, issued: today(), expires: licenseExpiry(today()), university: '', degree: 'เภสัชศาสตรบัณฑิต' } })
 
   return (
     <div className="page">
@@ -47,7 +48,7 @@ export default function Staff() {
                 <dl className="kv">
                   <dt>เลขที่ใบอนุญาต</dt><dd className="mono"><b>{s.license.no}</b></dd>
                   <dt>สถาบัน</dt><dd>{s.license.university || '-'}</dd>
-                  <dt>หมดอายุ</dt><dd>{thDate(s.license.expires)}</dd>
+                  <dt>หมดอายุ</dt><dd>{licenseUntil(s.license)}</dd>
                 </dl>
               ) : <p className="muted small">ไม่มีใบประกอบวิชาชีพ - จ่ายยาอันตรายและยาควบคุมพิเศษไม่ได้</p>}
               <div className="row" style={{ marginTop: 16 }}>
@@ -87,10 +88,12 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
   const isPh = s.role === 'pharmacist' || ownerLic
   const set = (k) => (e) => setS({ ...s, [k]: e.target.value })
   const setL = (k) => (e) => setS({ ...s, license: { ...s.license, [k]: e.target.value } })
+  const setIssued = (v) => setS({ ...s, license: { ...s.license, issued: v, expires: licenseExpiry(v) } })
   const save = () => {
     if (!s.name.trim()) return alert('กรุณากรอกชื่อ')
     if ((!s.id || s.pin) && !/^\d{4}$/.test(s.pin || '')) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
-    if (isPh && (!s.license.no.trim() || !s.license.expires)) return alert('ต้องกรอกเลขที่ใบอนุญาตและวันหมดอายุ')
+    if (isPh && (!s.license.no.trim() || !s.license.issued)) return alert('ต้องกรอกเลขที่ใบอนุญาตและวันออกใบอนุญาต')
+    if (isPh && s.license.issued > today()) return alert('วันออกใบอนุญาตต้องไม่เกินวันนี้')
     onSave({ ...s, id: s.id || uid(), license: isPh ? s.license : null })
   }
   return (
@@ -124,8 +127,10 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
           <div className="form-grid">
             <Field label="เลขที่ใบอนุญาต *"><input value={s.license.no} onChange={setL('no')} placeholder="ภ.xxxxx" /></Field>
             <Field label="ประเภท"><input value={s.license.type} onChange={setL('type')} /></Field>
-            <Field label="วันออกใบอนุญาต"><input type="date" value={s.license.issued || ''} onChange={setL('issued')} /></Field>
-            <Field label="วันหมดอายุ *"><input type="date" value={s.license.expires || ''} onChange={setL('expires')} /></Field>
+            <Field label="วันออกใบอนุญาต *"><ThaiDateInput value={s.license.issued || ''} onChange={setIssued} /></Field>
+            <Field label="วันหมดอายุ (คำนวณอัตโนมัติ)" hint={`ออกภายในปี ${LIFETIME_LAST_YEAR + 543} = ตลอดชีพ · หลังจากนั้นใช้ได้ 5 ปี`}>
+              <input readOnly tabIndex={-1} value={s.license.issued ? licenseUntil({ expires: licenseExpiry(s.license.issued) }, true) : '-'} />
+            </Field>
             <Field label="วุฒิการศึกษา"><input value={s.license.degree || ''} onChange={setL('degree')} /></Field>
             <Field label="สถาบันที่สำเร็จการศึกษา"><input value={s.license.university || ''} onChange={setL('university')} /></Field>
           </div>
