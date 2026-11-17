@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, ROLE_LABEL, today, uid } from '../utils.js'
+import { isLifetime, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, uid } from '../utils.js'
 import { Avatar, Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
 import LicenseDoc from '../components/LicenseDoc.jsx'
 import ThaiDateInput from '../components/ThaiDateInput.jsx'
@@ -30,7 +30,7 @@ export default function Staff() {
       <div className="grid stats" style={{ marginBottom: 20 }}>
         <Stat accent label="พนักงานทั้งหมด" value={state.staff.length} />
         <Stat label="เภสัชกร" value={pharm.length} change="มีใบประกอบวิชาชีพ" />
-        <Stat label="ใบอนุญาตใกล้หมดอายุ" value={pharm.filter((s) => licenseStatus(s.license).key === 'soon').length} change="ภายใน 60 วัน" />
+        <Stat label="ใบอนุญาตใกล้หมดอายุ" value={pharm.filter((s) => licenseStatus(s.license).key === 'soon').length} change={`ภายใน ${LICENSE_RENEW_DAYS} วัน · ต่ออายุได้แล้ว`} />
         <Stat label="ใบอนุญาตหมดอายุ" value={pharm.filter((s) => licenseStatus(s.license).key === 'expired').length} change="จ่ายยาอันตรายไม่ได้" />
       </div>
 
@@ -51,6 +51,9 @@ export default function Staff() {
                   <dt>หมดอายุ</dt><dd>{licenseUntil(s.license)}</dd>
                 </dl>
               ) : <p className="muted small">ไม่มีใบประกอบวิชาชีพ - จ่ายยาอันตรายและยาควบคุมพิเศษไม่ได้</p>}
+              {s.license && !isLifetime(s.license) && (st.key === 'ok'
+                ? <span className="lic-renew">ยื่นต่ออายุได้ตั้งแต่ {thDate(renewFrom(s.license))} (ล่วงหน้า {LICENSE_RENEW_DAYS} วัน)</span>
+                : <span className={'lic-renew ' + st.cls}>{st.key === 'expired' ? 'ใบอนุญาตหมดอายุแล้ว - ต้องต่ออายุก่อนจ่ายยาอันตราย' : `ต่ออายุได้แล้ว - เหลืออีก ${st.days} วันก่อนหมดอายุ`}</span>)}
               <div className="row" style={{ marginTop: 16 }}>
                 {s.license && <button className="btn sm primary" onClick={() => setDoc(s.id)}>ใบประกอบวิชาชีพ</button>}
                 {isAdmin && <button className="btn sm" onClick={() => setEdit({ ...s, pin: '', license: s.license || blank().license })}>แก้ไข</button>}

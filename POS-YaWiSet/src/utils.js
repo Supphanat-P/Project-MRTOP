@@ -80,6 +80,14 @@ export const expStatus = (exp) => {
 }
 
 export const LIFETIME_LAST_YEAR = 2015
+export const LICENSE_RENEW_DAYS = 150
+
+export const renewFrom = (lic) => {
+  if (!lic?.expires) return null
+  const t = new Date(lic.expires + 'T00:00:00')
+  t.setDate(t.getDate() - LICENSE_RENEW_DAYS)
+  return t.toLocaleDateString('sv-SE')
+}
 
 export const licenseExpiry = (issued) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(issued || '')
@@ -99,7 +107,7 @@ export const licenseStatus = (lic) => {
   if (isLifetime(lic)) return { key: 'ok', label: 'ตลอดชีพ', cls: 'ok', days: Infinity }
   const n = daysUntil(lic.expires)
   if (n < 0) return { key: 'expired', label: 'หมดอายุแล้ว', cls: 'danger', days: n }
-  if (n <= 60) return { key: 'soon', label: `ใกล้หมดอายุ (${n} วัน)`, cls: 'warn', days: n }
+  if (n <= LICENSE_RENEW_DAYS) return { key: 'soon', label: `ใกล้หมดอายุ (${n} วัน)`, cls: 'warn', days: n }
   return { key: 'ok', label: 'ใช้งานได้', cls: 'ok', days: n }
 }
 
