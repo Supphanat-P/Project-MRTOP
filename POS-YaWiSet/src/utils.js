@@ -97,8 +97,4 @@ export const downloadCSV = (filename, rows) => {
   URL.revokeObjectURL(a.href)
 }
 
-export const printModal = () => {
-  document.body.classList.add('printing')
-  window.print()
-  document.body.classList.remove('printing')
-}
+

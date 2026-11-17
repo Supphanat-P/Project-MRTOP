@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { licenseStatus, printModal, ROLE_LABEL, thDate, today, uid } from '../utils.js'
+import { licenseStatus, ROLE_LABEL, thDate, today, uid } from '../utils.js'
 import { Avatar, Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
 import LicenseDoc from '../components/LicenseDoc.jsx'
+import PrintButtons from '../components/PrintButtons.jsx'
+import { licenseDoc } from '../pdf.js'
 
 const COLORS = ['#1A7A6E', '#2A9D8F', '#7c3aed', '#ea580c', '#0369a1', '#be185d', '#4d7c0f']
 const LIC_TYPE = 'ใบอนุญาตประกอบวิชาชีพเภสัชกรรม'
@@ -67,7 +69,7 @@ export default function Staff() {
 
       {viewing && (
         <Modal wide title={`ใบประกอบวิชาชีพ (จำลอง) - ${viewing.title} ${viewing.name}`} onClose={() => setDoc(null)}
-          footer={<><span className="muted small left">เอกสารจำลองสำหรับแสดงในระบบเท่านั้น</span><button className="btn" onClick={() => setDoc(null)}>ปิด</button><button className="btn primary" onClick={printModal}>พิมพ์</button></>}>
+          footer={<><span className="muted small left">เอกสารจำลองสำหรับแสดงในระบบเท่านั้น</span><button className="btn" onClick={() => setDoc(null)}>ปิด</button><PrintButtons build={() => licenseDoc(viewing, state.settings)} filename={`license-${viewing.id}.pdf`} /></>}>
           <LicenseDoc staff={viewing} shop={state.settings} />
         </Modal>
       )}

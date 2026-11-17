@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { baht, downloadCSV, localDay, PAY_LABEL, printModal, thDate, today } from '../utils.js'
+import { baht, downloadCSV, localDay, PAY_LABEL, thDate, today } from '../utils.js'
 import { Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
+import PrintButtons from '../components/PrintButtons.jsx'
+import { labelsDoc, receiptDoc } from '../pdf.js'
 import ReceiptView, { DrugLabel } from '../components/ReceiptView.jsx'
 
 export default function Receipts() {
@@ -87,7 +89,7 @@ export default function Receipts() {
               <button className={mode === 'receipt' ? 'on' : ''} onClick={() => setMode('receipt')}>ใบเสร็จ</button>
               <button className={mode === 'label' ? 'on' : ''} onClick={() => setMode('label')}>ฉลากยา</button>
             </div>
-            <button className="btn primary" onClick={printModal}>พิมพ์</button>
+            <PrintButtons build={() => (mode === 'receipt' ? receiptDoc(viewing, state) : labelsDoc(viewing, state))} filename={`${mode === 'receipt' ? 'receipt' : 'label'}-${viewing.no}.pdf`} />
           </>}>
           {mode === 'receipt' ? <ReceiptView receipt={viewing} /> : viewing.items.map((it, i) => <DrugLabel key={i} item={it} receipt={viewing} />)}
         </Modal>
