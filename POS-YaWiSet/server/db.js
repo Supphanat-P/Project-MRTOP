@@ -58,6 +58,8 @@ export class HttpError extends Error {
 }
 
 export const LIFETIME_LAST_YEAR = 2015
+export const LICENSE_NO_DIGITS = 5
+export const isLicenseNo = (s) => /^ภ\.\d+$/.test(s || '') && s.length - 2 <= LICENSE_NO_DIGITS
 
 export const licenseExpiry = (issued) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(issued || '')

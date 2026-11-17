@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { isLifetime, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, uid } from '../utils.js'
+import { isLicenseNo, isLifetime, LICENSE_NO_DIGITS, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, toLicenseNo, uid } from '../utils.js'
 import { Avatar, Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
 import LicenseDoc from '../components/LicenseDoc.jsx'
 import ThaiDateInput from '../components/ThaiDateInput.jsx'
@@ -98,6 +98,7 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
     if (!s.name.trim()) return alert('กรุณากรอกชื่อ')
     if ((!s.id || s.pin) && !/^\d{4}$/.test(s.pin || '')) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
     if (isPh && (!s.license.no.trim() || !s.license.issued)) return alert('ต้องกรอกเลขที่ใบอนุญาตและวันออกใบอนุญาต')
+    if (isPh && !isLicenseNo(s.license.no)) return alert(`เลขที่ใบอนุญาตต้องเป็น ภ. ตามด้วยตัวเลขไม่เกิน ${LICENSE_NO_DIGITS} หลัก`)
     if (isPh && s.license.issued > today()) return alert('วันออกใบอนุญาตต้องไม่เกินวันนี้')
     onSave({ ...s, id: s.id || uid(), license: isPh ? s.license : null })
   }
@@ -130,7 +131,9 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
         <fieldset className="fs">
           <legend>ข้อมูลใบประกอบวิชาชีพ (สำหรับเอกสารจำลอง)</legend>
           <div className="form-grid">
-            <Field label="เลขที่ใบอนุญาต *"><input value={s.license.no} onChange={setL('no')} placeholder="ภ.xxxxx" /></Field>
+            <Field label="เลขที่ใบอนุญาต *" hint={`ภ. ตามด้วยตัวเลขไม่เกิน ${LICENSE_NO_DIGITS} หลัก`}>
+              <input value={s.license.no} inputMode="numeric" maxLength={LICENSE_NO_DIGITS + 2} placeholder="ภ.12345" onChange={(e) => setS({ ...s, license: { ...s.license, no: toLicenseNo(e.target.value) } })} />
+            </Field>
             <Field label="ประเภท"><input value={s.license.type} onChange={setL('type')} /></Field>
             <Field label="วันออกใบอนุญาต *"><ThaiDateInput value={s.license.issued || ''} onChange={setIssued} /></Field>
             <Field label="วันหมดอายุ (คำนวณอัตโนมัติ)" hint={`ออกภายในปี ${LIFETIME_LAST_YEAR + 543} = ตลอดชีพ · หลังจากนั้นใช้ได้ 5 ปี`}>

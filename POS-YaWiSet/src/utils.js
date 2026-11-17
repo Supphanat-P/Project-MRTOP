@@ -137,6 +137,12 @@ export const nextLot = (p) => p.lots.filter((l) => lotStatus(l).sellable).sort((
 
 export const LIFETIME_LAST_YEAR = 2015
 export const LICENSE_RENEW_DAYS = 150
+export const LICENSE_NO_DIGITS = 5
+export const isLicenseNo = (s) => /^ภ\.\d+$/.test(s || '') && s.length - 2 <= LICENSE_NO_DIGITS
+export const toLicenseNo = (v) => {
+  const d = String(v || '').replace(/\D/g, '').slice(0, LICENSE_NO_DIGITS)
+  return d ? 'ภ.' + d : ''
+}
 
 export const renewFrom = (lic) => {
   if (!lic?.expires) return null

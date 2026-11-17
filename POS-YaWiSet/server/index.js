@@ -2,7 +2,7 @@ import express from 'express'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { fromDT, hashPin, HttpError, isSellable, licenseExpiry, localDate, newId, pool, toDT, tx, verifyPin } from './db.js'
+import { fromDT, hashPin, HttpError, isLicenseNo, isSellable, LICENSE_NO_DIGITS, licenseExpiry, localDate, newId, pool, toDT, tx, verifyPin } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const app = express()
@@ -331,6 +331,7 @@ app.put('/api/staff/:id', role('admin'), wrap(async (req, res) => {
   if (s.pin && !/^\d{4}$/.test(s.pin)) throw new HttpError(400, 'PIN ต้องเป็นตัวเลข 4 หลัก')
   const l = s.license?.no?.trim() ? s.license : null
   if (s.role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันออกใบอนุญาต')
+  if (l && !isLicenseNo(l.no.trim())) throw new HttpError(400, `เลขที่ใบอนุญาตต้องเป็น ภ. ตามด้วยตัวเลขไม่เกิน ${LICENSE_NO_DIGITS} หลัก`)
   if (l && !/^\d{4}-\d{2}-\d{2}$/.test(l.issued || '')) throw new HttpError(400, 'กรุณาระบุวันออกใบอนุญาต')
   if (l && l.issued > localDate()) throw new HttpError(400, 'วันออกใบอนุญาตต้องไม่เกินวันนี้')
   if (id === req.user.staffId && s.role !== 'admin') throw new HttpError(400, 'เปลี่ยนบทบาทของตัวเองไม่ได้')
