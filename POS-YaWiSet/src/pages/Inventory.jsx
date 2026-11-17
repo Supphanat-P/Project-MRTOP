@@ -6,8 +6,7 @@ import { Badge, CatTag, Field, Modal, PageHead, Stat } from '../components/ui.js
 const blank = { id: '', barcode: '', name: '', generic: '', category: CATEGORIES[0], unit: 'แผง', price: '', cost: '', minStock: 10, dosage: '', lots: [] }
 
 export default function Inventory() {
-  const { state, act, me } = useStore()
-  const canEdit = me.role !== 'cashier'
+  const { state, act } = useStore()
   const [tab, setTab] = useState('stock')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
@@ -43,8 +42,8 @@ export default function Inventory() {
     <div className="page">
       <PageHead label="Inventory" title="คลังยา &" em="สต็อก" sub="จัดการสินค้า รับยาเข้า ตรวจนับ และติดตามวันหมดอายุแยกตาม Lot">
         <button className="btn" onClick={exportCSV}>CSV</button>
-        {canEdit && <button className="btn" onClick={() => setRecv({ productId: state.products[0]?.id || '', lotNo: '', exp: today(365), qty: '', cost: '', supplier: '', invoiceNo: '' })}>＋ รับยาเข้า</button>}
-        {canEdit && <button className="btn primary" onClick={() => setEdit({ ...blank })}>＋ เพิ่มสินค้า</button>}
+        <button className="btn" onClick={() => setRecv({ productId: state.products[0]?.id || '', lotNo: '', exp: today(365), qty: '', cost: '', supplier: '', invoiceNo: '' })}>＋ รับยาเข้า</button>
+        <button className="btn primary" onClick={() => setEdit({ ...blank })}>＋ เพิ่มสินค้า</button>
       </PageHead>
 
       <div className="grid stats" style={{ marginBottom: 20 }}>
@@ -89,7 +88,7 @@ export default function Inventory() {
                         <td>{ne ? <Badge cls={expStatus(ne).cls}>{expStatus(ne).label}</Badge> : <span className="muted">-</span>}</td>
                         <td className="right nowrap">
                           <button className="btn sm ghost" onClick={() => setOpen({ ...open, [p.id]: !open[p.id] })}>{open[p.id] ? 'ซ่อน' : `Lot (${p.lots.length})`}</button>
-                          {canEdit && <button className="btn sm" onClick={() => setEdit({ ...p })}>แก้ไข</button>}
+                          <button className="btn sm" onClick={() => setEdit({ ...p })}>แก้ไข</button>
                         </td>
                       </tr>
                       {open[p.id] && (p.lots.length ? p.lots.map((l) => (
@@ -98,10 +97,10 @@ export default function Inventory() {
                           <td className="right">{thDate(l.exp)}</td>
                           <td className="right">{l.qty} {p.unit}</td>
                           <td><Badge cls={expStatus(l.exp).cls}>{daysUntil(l.exp) < 0 ? 'หมดอายุ' : `อีก ${daysUntil(l.exp)} วัน`}</Badge></td>
-                          <td className="right nowrap">{canEdit && <>
+                          <td className="right nowrap">
                             <button className="btn sm" onClick={() => setLotAct({ kind: 'adjust', p, l, count: l.qty, reason: 'ตรวจนับสต็อก' })}>ตรวจนับ</button>
                             <button className="btn sm danger" onClick={() => setLotAct({ kind: 'writeOff', p, l, reason: daysUntil(l.exp) < 0 ? 'ยาหมดอายุ' : '' })}>ตัดจำหน่าย</button>
-                          </>}</td>
+                          </td>
                         </tr>
                       )) : <tr className="sub"><td colSpan={6} className="muted">&nbsp;&nbsp;ยังไม่มีสต็อก</td></tr>)}
                     </Fragment>

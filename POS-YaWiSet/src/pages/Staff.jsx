@@ -47,7 +47,7 @@ export default function Staff() {
                   <dt>สถาบัน</dt><dd>{s.license.university || '-'}</dd>
                   <dt>หมดอายุ</dt><dd>{thDate(s.license.expires)}</dd>
                 </dl>
-              ) : <p className="muted small">พนักงานขาย - จ่ายได้เฉพาะยาสามัญประจำบ้าน/สินค้าทั่วไป ยาอันตรายต้องให้เภสัชกรยืนยัน</p>}
+              ) : <p className="muted small">ไม่มีใบประกอบวิชาชีพ - จ่ายยาอันตรายและยาควบคุมพิเศษไม่ได้</p>}
               <div className="row" style={{ marginTop: 16 }}>
                 {s.license && <button className="btn sm primary" onClick={() => setDoc(s.id)}>ใบประกอบวิชาชีพ</button>}
                 {isAdmin && <button className="btn sm" onClick={() => setEdit({ ...s, pin: '', license: s.license || blank().license })}>แก้ไข</button>}
@@ -59,10 +59,9 @@ export default function Staff() {
 
       <div className="card" style={{ marginTop: 20 }}>
         <h3>สิทธิ์ตามบทบาท</h3>
-        <div className="grid three" style={{ gap: 14 }}>
-          <div className="alert"><b>ผู้ดูแล / เภสัชกร</b><br />ทุกเมนู · ตั้งค่าร้าน · จัดการพนักงาน · รีเซ็ตข้อมูล</div>
-          <div className="alert"><b>เภสัชกร</b><br />ขาย + จ่ายยาอันตราย/ควบคุมพิเศษ · จัดการคลังยา · ยกเลิกบิล</div>
-          <div className="alert"><b>พนักงานขาย</b><br />ขายหน้าร้าน · ดูสต็อก/ใบเสร็จ · เพิ่มลูกค้า</div>
+        <div className="grid two" style={{ gap: 14 }}>
+          <div className="alert"><b>เจ้าของร้าน (Admin)</b><br />ทุกเมนู · จัดการผู้ใช้ (เพิ่ม/แก้ไข/ลบ/ตั้ง PIN) · รีเซ็ตข้อมูล</div>
+          <div className="alert"><b>เภสัชกร (Pharmacist)</b><br />ขายและจ่ายยา · จัดการคลังยา · ยกเลิกบิล · ข้อมูลร้านและลูกค้า · ทุกอย่างยกเว้นจัดการผู้ใช้</div>
         </div>
       </div>
 
@@ -82,13 +81,14 @@ export default function Staff() {
 
 function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
   const [s, setS] = useState(initial)
-  const isPh = s.role !== 'cashier'
+  const [ownerLic, setOwnerLic] = useState(!!initial.license?.no)
+  const isPh = s.role === 'pharmacist' || ownerLic
   const set = (k) => (e) => setS({ ...s, [k]: e.target.value })
   const setL = (k) => (e) => setS({ ...s, license: { ...s.license, [k]: e.target.value } })
   const save = () => {
     if (!s.name.trim()) return alert('กรุณากรอกชื่อ')
     if ((!s.id || s.pin) && !/^\d{4}$/.test(s.pin || '')) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
-    if (isPh && (!s.license.no.trim() || !s.license.expires)) return alert('เภสัชกรต้องมีเลขที่ใบอนุญาตและวันหมดอายุ')
+    if (isPh && (!s.license.no.trim() || !s.license.expires)) return alert('ต้องกรอกเลขที่ใบอนุญาตและวันหมดอายุ')
     onSave({ ...s, id: s.id || uid(), license: isPh ? s.license : null })
   }
   return (
@@ -110,6 +110,12 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
           ))}</div>
         </Field>
       </div>
+      {s.role === 'admin' && (
+        <label className="row small" style={{ marginTop: 14 }}>
+          <input type="checkbox" checked={ownerLic} onChange={(e) => setOwnerLic(e.target.checked)} />
+          เจ้าของร้านเป็นเภสัชกรด้วย (มีใบประกอบวิชาชีพ)
+        </label>
+      )}
       {isPh && (
         <fieldset className="fs">
           <legend>ข้อมูลใบประกอบวิชาชีพ (สำหรับเอกสารจำลอง)</legend>

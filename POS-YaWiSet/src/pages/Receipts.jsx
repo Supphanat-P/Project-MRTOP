@@ -5,8 +5,7 @@ import { Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
 import ReceiptView, { DrugLabel } from '../components/ReceiptView.jsx'
 
 export default function Receipts() {
-  const { state, act, me } = useStore()
-  const canVoid = me.role !== 'cashier'
+  const { state, act } = useStore()
   const [from, setFrom] = useState(today(-30))
   const [to, setTo] = useState(today())
   const [q, setQ] = useState('')
@@ -70,7 +69,7 @@ export default function Receipts() {
                   <td><small>{name(r.staffId)}{r.pharmacistId && <><br />เภสัชกร: {name(r.pharmacistId)}</>}</small></td>
                   <td className="right nowrap" style={{ textDecoration: 'none' }}>
                     <button className="btn sm" onClick={() => { setView(r.id); setMode('receipt') }}>ดู / พิมพ์</button>
-                    {canVoid && !r.voided && <button className="btn sm danger" onClick={() => setVoiding({ r, reason: '' })}>ยกเลิก</button>}
+                    {!r.voided && <button className="btn sm danger" onClick={() => setVoiding({ r, reason: '' })}>ยกเลิก</button>}
                     {r.voided && <Badge cls="danger">ยกเลิกแล้ว</Badge>}
                   </td>
                 </tr>

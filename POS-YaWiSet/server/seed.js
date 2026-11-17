@@ -17,7 +17,6 @@ const LIC_TYPE = 'ใบอนุญาตประกอบวิชาชี�
 const staff = [
   ['s1', 'ภก.', 'สมชาย ใจดี', 'admin', '1111', '#1A7A6E', ['ภ.99001', -1800, 1800, 'มหาวิทยาลัยตัวอย่าง', 'เภสัชศาสตรบัณฑิต']],
   ['s2', 'ภญ.', 'สุภาพร รักษ์ยา', 'pharmacist', '2222', '#7c3aed', ['ภ.99002', -1790, 20, 'มหาวิทยาลัยสาธิต', 'เภสัชศาสตรบัณฑิต (การบริบาลทางเภสัชกรรม)']],
-  ['s3', 'นางสาว', 'มานี ขายเก่ง', 'cashier', '3333', '#ea580c', null],
 ]
 
 const TABLES_CLEAR_ORDER = ['receipt_item_lots', 'receipt_items', 'receipts', 'stock_moves', 'product_lots', 'products', 'customers', 'staff', 'shop_settings']

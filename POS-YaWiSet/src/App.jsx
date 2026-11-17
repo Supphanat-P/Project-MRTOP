@@ -72,7 +72,7 @@ function Login() {
                 ))}
                 {!staff.length && <div className="alert warn">ยังไม่มีพนักงานในระบบ - รัน <code>npm run db:init</code></div>}
               </div>
-              <p className="muted small" style={{ marginTop: 14 }}>ข้อมูลตัวอย่าง: PIN 1111 ผู้ดูแล · 2222 เภสัชกร · 3333 พนักงานขาย</p>
+              <p className="muted small" style={{ marginTop: 14 }}>ข้อมูลตัวอย่าง: PIN 1111 เจ้าของร้าน · 2222 เภสัชกร</p>
             </>
           ) : (
             <form onSubmit={submit}>

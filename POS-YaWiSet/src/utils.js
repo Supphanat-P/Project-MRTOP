@@ -9,7 +9,7 @@ export const CATEGORIES = [
 ]
 export const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
 export const UNITS = ['แผง', 'เม็ด', 'แคปซูล', 'ขวด', 'ซอง', 'กล่อง', 'หลอด', 'ชิ้น']
-export const ROLE_LABEL = { admin: 'ผู้ดูแล / เภสัชกร', pharmacist: 'เภสัชกร', cashier: 'พนักงานขาย' }
+export const ROLE_LABEL = { admin: 'เจ้าของร้าน', pharmacist: 'เภสัชกร' }
 export const PAY_LABEL = { cash: 'เงินสด', qr: 'พร้อมเพย์', card: 'บัตร' }
 export const MOVE_LABEL = { receive: 'รับเข้า', sale: 'ขาย', write_off: 'ตัดจำหน่าย', void: 'คืนจากยกเลิกบิล', adjust: 'ปรับยอด' }
 export const catIndex = (c) => Math.max(0, CATEGORIES.indexOf(c))

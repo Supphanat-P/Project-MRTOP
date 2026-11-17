@@ -42,7 +42,7 @@ export default function LicenseDoc({ staff, shop }) {
       <div className="lic-bottom">
         <div className="lic-sign"><div className="line">{staff.name.split(' ')[0]}</div>ลายมือชื่อผู้ถือใบอนุญาต</div>
         <div style={{ textAlign: 'center' }}><div className="lic-qr" aria-hidden="true" /><div className="mono" style={{ fontSize: '.62rem', marginTop: 4 }}>{ref}</div></div>
-        <div className="lic-sign"><div className="line">ผู้ดูแลระบบ</div>ผู้บันทึกข้อมูลในระบบ</div>
+        <div className="lic-sign"><div className="line">เจ้าของร้าน</div>ผู้บันทึกข้อมูลในระบบ</div>
       </div>
 
       <div className="lic-foot">

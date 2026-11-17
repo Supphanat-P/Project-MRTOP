@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS staff (
   id              VARCHAR(20) PRIMARY KEY,
   title           VARCHAR(20)  NOT NULL,
   name            VARCHAR(150) NOT NULL,
-  role            ENUM('admin','pharmacist','cashier') NOT NULL,
+  role            ENUM('admin','pharmacist') NOT NULL,
   pin_hash        VARCHAR(200) NOT NULL,
   color           VARCHAR(10)  DEFAULT '#1A7A6E',
   lic_no          VARCHAR(30)  NULL,

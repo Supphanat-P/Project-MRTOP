@@ -28,8 +28,7 @@ export default function Settings() {
       <div className="grid two">
         <div className="card">
           <h3>ข้อมูลร้าน (แสดงบนใบเสร็จ)</h3>
-          {!isAdmin && <div className="alert warn" style={{ marginBottom: 14 }}>เฉพาะผู้ดูแลระบบแก้ไขได้</div>}
-          <fieldset disabled={!isAdmin} style={{ border: 'none' }}>
+          <fieldset style={{ border: 'none' }}>
             <div className="form-grid">
               <Field label="ชื่อร้าน *" className="span2"><input value={s.shopName || ''} onChange={set('shopName')} /></Field>
               <Field label="ที่อยู่" className="span2"><input value={s.address || ''} onChange={set('address')} /></Field>
@@ -39,7 +38,7 @@ export default function Settings() {
               <Field label="พร้อมเพย์"><input value={s.promptPay || ''} onChange={set('promptPay')} /></Field>
               <Field label="ข้อความท้ายใบเสร็จ" className="span2"><input value={s.receiptNote || ''} onChange={set('receiptNote')} /></Field>
             </div>
-            {isAdmin && <button className="btn primary" style={{ marginTop: 16 }} onClick={() => act('saveSettings', s, 'บันทึกข้อมูลร้านแล้ว')}>บันทึก</button>}
+            <button className="btn primary" style={{ marginTop: 16 }} onClick={() => act('saveSettings', s, 'บันทึกข้อมูลร้านแล้ว')}>บันทึก</button>
           </fieldset>
         </div>
 

@@ -9,7 +9,7 @@ const app = express()
 app.use(express.json({ limit: '1mb' }))
 
 const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
-const ROLES = ['admin', 'pharmacist', 'cashier']
+const ROLES = ['admin', 'pharmacist']
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 const okId = (s) => /^[a-z0-9]{4,20}$/.test(s || '')
 
@@ -107,7 +107,7 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
   })
 }))
 
-app.put('/api/settings', role('admin'), wrap(async (req, res) => {
+app.put('/api/settings', wrap(async (req, res) => {
   const s = req.body || {}
   if (!s.shopName?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อร้าน')
   await pool.query(
@@ -297,8 +297,9 @@ app.put('/api/staff/:id', role('admin'), wrap(async (req, res) => {
   if (!s.name?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อ')
   if (!ROLES.includes(s.role)) throw new HttpError(400, 'บทบาทไม่ถูกต้อง')
   if (s.pin && !/^\d{4}$/.test(s.pin)) throw new HttpError(400, 'PIN ต้องเป็นตัวเลข 4 หลัก')
-  const l = s.role !== 'cashier' ? s.license : null
-  if (s.role !== 'cashier' && (!l?.no?.trim() || !l?.expires)) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันหมดอายุ')
+  const l = s.license?.no?.trim() ? s.license : null
+  if (s.role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันหมดอายุ')
+  if (l && !l.expires) throw new HttpError(400, 'กรุณาระบุวันหมดอายุใบอนุญาต')
   if (id === req.user.staffId && s.role !== 'admin') throw new HttpError(400, 'เปลี่ยนบทบาทของตัวเองไม่ได้')
   const [[exist]] = await pool.query('SELECT id FROM staff WHERE id = ?', [id])
   if (!exist && !s.pin) throw new HttpError(400, 'พนักงานใหม่ต้องตั้ง PIN')
