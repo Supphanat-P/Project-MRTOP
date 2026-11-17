@@ -3,6 +3,7 @@ import { useStore } from "../store.jsx";
 import {
   baht,
   CATEGORIES,
+  CATEGORY_INFO,
   fmtPhone,
   licenseStatus,
   matchMember,
@@ -12,7 +13,7 @@ import {
   stockOf,
   thDate,
 } from "../utils.js";
-import { Badge, CatTag, Field, Modal } from "../components/ui.jsx";
+import { Badge, CatIcon, CatTag, Field, Modal } from "../components/ui.jsx";
 import ReceiptView, { DrugLabel } from "../components/ReceiptView.jsx";
 import MemberForm from "../components/MemberForm.jsx";
 import PrintButtons from "../components/PrintButtons.jsx";
@@ -116,9 +117,7 @@ export default function POS() {
   const [cat, setCat] = useState("");
   const [cart, setCart] = useState([]);
   const [customerId, setCustomerId] = useState("c1");
-  const [pharmacistId, setPharmacistId] = useState(
-    me.license && licenseStatus(me.license).key !== "expired" ? me.id : "",
-  );
+  const pharmacistId = me?.id || "";
   const [rxNo, setRxNo] = useState("");
   const [prescriber, setPrescriber] = useState("");
   const [discount, setDiscount] = useState("");
@@ -126,10 +125,6 @@ export default function POS() {
   const [received, setReceived] = useState("");
   const [done, setDone] = useState(null);
   const [printMode, setPrintMode] = useState("receipt");
-
-  const pharmacists = state.staff.filter(
-    (s) => s.license && licenseStatus(s.license).key !== "expired",
-  );
   const found = useMemo(() => {
     const k = q.trim().toLowerCase();
     return state.products.filter(
@@ -189,22 +184,25 @@ export default function POS() {
 
   const checkout = async () => {
     if (!lines.length) return notify("ยังไม่มีสินค้าในตะกร้า", "danger");
-    if (needPharm && !pharmacistId)
-      return notify(
-        "มียาอันตราย/ยาควบคุมพิเศษ ต้องระบุเภสัชกรผู้จ่ายยา",
-        "danger",
-      );
+    if (needPharm) {
+      if (!me?.license || licenseStatus(me.license).key === "expired") {
+        return notify(
+          "มียาอันตราย/ยาควบคุมพิเศษ ผู้ใช้งานที่เข้าสู่ระบบต้องมีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุ",
+          "danger",
+        );
+      }
+    }
     if (needRx && (!rxNo.trim() || !prescriber.trim()))
-      return notify("ยาควบคุมพิเศษต้องระบุเลขใบสั่งยาและชื่อแพทย์", "danger");
+      return notify("ยาควบคุมพิเศษต้องระบุเลขใบสั่งยาและชื่อแพทย์ในกล่องรายการยา", "danger");
     if (payment === "cash" && change < 0)
       return notify("รับเงินไม่พอ", "danger");
     const res = await act("checkout", {
       cart: cart.map(({ productId, qty }) => ({ productId, qty })),
       receipt: {
         customerId,
-        pharmacistId: pharmacistId || null,
-        rxNo,
-        prescriber,
+        pharmacistId: me?.id || null,
+        rxNo: needRx ? rxNo.trim() : null,
+        prescriber: needRx ? prescriber.trim() : null,
         discount: disc,
         payment,
         received: payment === "cash" ? Number(received) : total,
@@ -252,21 +250,26 @@ export default function POS() {
                 className={cat === c ? "on" : ""}
                 onClick={() => setCat(c)}
               >
-                {c}
+                <CatIcon category={c} size={12} />
+                <span style={{ marginLeft: 5 }}>{c}</span>
               </button>
             ))}
           </div>
           <div className="prod-grid">
             {found.map((p) => {
               const st = stockOf(p);
+              const isControlled = p.category === "ยาควบคุมพิเศษ";
+              const isDangerous = p.category === "ยาอันตราย";
               return (
                 <button
                   key={p.id}
-                  className="prod"
+                  className={`prod ${isControlled ? "prod-controlled" : isDangerous ? "prod-danger" : ""}`}
                   disabled={!st}
                   onClick={() => add(p)}
                 >
-                  <CatTag category={p.category} />
+                  <div className="prod-badge-row">
+                    <CatTag category={p.category} />
+                  </div>
                   <span className="name">{p.name}</span>
                   <span className="gen">{p.generic}</span>
                   <span className="row between" style={{ marginTop: "auto" }}>
@@ -292,7 +295,14 @@ export default function POS() {
             <span className="title">ตะกร้า · {lines.length} รายการ</span>
             <span className="spacer" />
             {lines.length > 0 && (
-              <button className="btn ghost sm" onClick={() => setCart([])}>
+              <button
+                className="btn ghost sm"
+                onClick={() => {
+                  setCart([]);
+                  setRxNo("");
+                  setPrescriber("");
+                }}
+              >
                 ล้าง
               </button>
             )}
@@ -306,75 +316,142 @@ export default function POS() {
             )}
 
             <div className="cart-list" style={{ marginTop: 12 }}>
-              {lines.map((l) => (
-                <div className="cart-line" key={l.productId}>
-                  <div>
-                    <div className="nm">{l.p.name}</div>
-                    <small className="muted">
-                      {baht(l.p.price)} / {l.p.unit}
-                    </small>
-                    {PHARMACIST_ONLY.includes(l.p.category) && (
-                      <div>
-                        <CatTag category={l.p.category} />
+              {lines.map((l) => {
+                const isControlled = l.p.category === "ยาควบคุมพิเศษ";
+                if (isControlled) {
+                  return (
+                    <div className="cart-controlled-card" key={l.productId}>
+                      <div className="cart-line-main">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="nm">{l.p.name}</div>
+                          <small className="muted">
+                            {baht(l.p.price)} / {l.p.unit}
+                          </small>
+                          <div style={{ marginTop: 4 }}>
+                            <CatTag category={l.p.category} />
+                          </div>
+                        </div>
+                        <div className="qty">
+                          <button
+                            onClick={() => setQty(l.productId, l.qty - 1)}
+                            aria-label="ลด"
+                          >
+                            −
+                          </button>
+                          <input
+                            value={l.qty}
+                            onChange={(e) => setQty(l.productId, e.target.value)}
+                            aria-label="จำนวน"
+                          />
+                          <button onClick={() => add(l.p)} aria-label="เพิ่ม">
+                            +
+                          </button>
+                        </div>
+                        <b className="nowrap">{baht(l.p.price * l.qty)}</b>
                       </div>
-                    )}
+
+                      <div className="cart-rx-section">
+                        <div className="cart-rx-header">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-1px" }}>
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                          </svg>
+                          <span>ข้อมูลใบสั่งยาแพทย์ (จำเป็นสำหรับยานี้)</span>
+                        </div>
+                        <div className="form-grid cart-rx-fields">
+                          <Field label="เลขที่ใบสั่งยา *">
+                            <input
+                              placeholder="เช่น RX-2026-001"
+                              value={rxNo}
+                              onChange={(e) => setRxNo(e.target.value)}
+                            />
+                          </Field>
+                          <Field label="ชื่อแพทย์ผู้สั่งยา *">
+                            <input
+                              placeholder="เช่น นพ.สมศักดิ์ รักดี"
+                              value={prescriber}
+                              onChange={(e) => setPrescriber(e.target.value)}
+                            />
+                          </Field>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="cart-line" key={l.productId}>
+                    <div>
+                      <div className="nm">{l.p.name}</div>
+                      <small className="muted">
+                        {baht(l.p.price)} / {l.p.unit}
+                      </small>
+                      {PHARMACIST_ONLY.includes(l.p.category) && (
+                        <div style={{ marginTop: 4 }}>
+                          <CatTag category={l.p.category} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="qty">
+                      <button
+                        onClick={() => setQty(l.productId, l.qty - 1)}
+                        aria-label="ลด"
+                      >
+                        −
+                      </button>
+                      <input
+                        value={l.qty}
+                        onChange={(e) => setQty(l.productId, e.target.value)}
+                        aria-label="จำนวน"
+                      />
+                      <button onClick={() => add(l.p)} aria-label="เพิ่ม">
+                        +
+                      </button>
+                    </div>
+                    <b className="nowrap">{baht(l.p.price * l.qty)}</b>
                   </div>
-                  <div className="qty">
-                    <button
-                      onClick={() => setQty(l.productId, l.qty - 1)}
-                      aria-label="ลด"
-                    >
-                      −
-                    </button>
-                    <input
-                      value={l.qty}
-                      onChange={(e) => setQty(l.productId, e.target.value)}
-                      aria-label="จำนวน"
-                    />
-                    <button onClick={() => add(l.p)} aria-label="เพิ่ม">
-                      +
-                    </button>
-                  </div>
-                  <b className="nowrap">{baht(l.p.price * l.qty)}</b>
-                </div>
-              ))}
+                );
+              })}
               {!lines.length && (
                 <p className="empty">แตะสินค้าเพื่อเพิ่มลงตะกร้า</p>
               )}
             </div>
 
-            {(needPharm || pharmacistId) && (
-              <fieldset className="fs">
-                <legend>เภสัชกรผู้จ่ายยา {needPharm && "*"}</legend>
-                <select
-                  value={pharmacistId}
-                  onChange={(e) => setPharmacistId(e.target.value)}
-                >
-                  <option value="">เลือกเภสัชกร</option>
-                  {pharmacists.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.title} {s.name} · {s.license.no}
-                    </option>
-                  ))}
-                </select>
-                {needRx && (
-                  <div className="form-grid" style={{ marginTop: 10 }}>
-                    <Field label="เลขที่ใบสั่งยา *">
-                      <input
-                        value={rxNo}
-                        onChange={(e) => setRxNo(e.target.value)}
-                      />
-                    </Field>
-                    <Field label="แพทย์ผู้สั่ง *">
-                      <input
-                        value={prescriber}
-                        onChange={(e) => setPrescriber(e.target.value)}
-                      />
-                    </Field>
+            <div className="pharmacist-readonly-box">
+              <div className="fs-title" style={{ marginBottom: 8 }}>
+                เภสัชกรผู้จ่ายยา {needPharm && "*"}
+              </div>
+              <div className="pharmacist-input-readonly">
+                <span className="ph-lock-icon">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-1px" }}>
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  readOnly
+                  disabled
+                  value={
+                    me
+                      ? `${me.title} ${me.name}${me.license?.no ? ` · ${me.license.no}` : " (ไม่มีใบประกอบวิชาชีพ)"}`
+                      : "ไม่พบข้อมูลผู้ใช้"
+                  }
+                  className="input-readonly"
+                  aria-label="เภสัชกรผู้จ่ายยา"
+                />
+              </div>
+              {needPharm &&
+                (!me?.license ||
+                  licenseStatus(me.license).key === "expired") && (
+                  <div className="alert danger small" style={{ marginTop: 8 }}>
+                    บัญชีนี้ไม่มีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุ
+                    ไม่สามารถจ่ายยาอันตราย/ควบคุมพิเศษได้
                   </div>
                 )}
-              </fieldset>
-            )}
+            </div>
 
             <div className="totals">
               <div className="row between">

@@ -269,16 +269,161 @@ tr.voided td { opacity: .55; text-decoration: line-through; }
   text-align: left; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 15px;
   display: flex; flex-direction: column; gap: 6px; box-shadow: var(--shadow-sm);
   transition: transform .6s var(--silk), box-shadow .6s var(--silk), border-color .3s;
+  position: relative; overflow: hidden;
 }
 .prod:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: var(--accent-border); }
 .prod:disabled { opacity: .45; }
 .prod .name { font-weight: 600; font-size: .92rem; line-height: 1.35; }
 .prod .gen { font-size: .75rem; color: var(--text-3); }
 .prod .price { font-weight: 700; color: var(--accent); font-size: 1.05rem; margin-top: auto; }
+
+/* Product Grid Indicators */
+.prod-badge-row { display: flex; align-items: center; width: 100%; min-width: 0; }
+.prod.prod-controlled {
+  border: 1.5px solid rgba(109, 40, 217, 0.4);
+  border-top: 4px solid #7C3AED;
+  background: linear-gradient(180deg, rgba(109, 40, 217, 0.05) 0%, #FFFFFF 32%);
+}
+.prod.prod-controlled:hover {
+  border-color: #7C3AED;
+  box-shadow: 0 8px 24px rgba(109, 40, 217, 0.18);
+}
+.prod.prod-danger {
+  border: 1.5px solid rgba(194, 65, 12, 0.35);
+  border-top: 4px solid #EA580C;
+  background: linear-gradient(180deg, rgba(194, 65, 12, 0.04) 0%, #FFFFFF 32%);
+}
+.prod.prod-danger:hover {
+  border-color: #EA580C;
+  box-shadow: 0 8px 24px rgba(194, 65, 12, 0.16);
+}
+
 .cart { position: sticky; top: 84px; }
-.cart-list { max-height: 34vh; overflow-y: auto; margin: 0 -6px; }
+.cart-list { max-height: 38vh; overflow-y: auto; margin: 0 -6px; padding: 2px 4px; }
 .cart-line { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 6px; border-bottom: 1px solid var(--border); }
 .cart-line .nm { font-size: .88rem; font-weight: 600; }
+
+/* Controlled Drug Cart Item Layout (Grouped Card) */
+.cart-controlled-card {
+  background: #FAF8FF;
+  border: 1.5px solid #DDD6FE;
+  border-radius: 14px;
+  padding: 12px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(109, 40, 217, 0.08);
+  transition: border-color .3s, box-shadow .3s;
+}
+.cart-controlled-card:hover {
+  border-color: #C4B5FD;
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.12);
+}
+.cart-line-main {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed #DDD6FE;
+}
+.cart-line-main .nm { font-size: .88rem; font-weight: 600; color: #4C1D95; }
+.cart-rx-section {
+  margin-top: 10px;
+  background: #FFFFFF;
+  border: 1px solid #EDE9FE;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+.cart-rx-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #6D28D9;
+  margin-bottom: 8px;
+}
+.cart-rx-icon { font-size: 0.9rem; }
+.cart-rx-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.cart-rx-fields .field span {
+  font-size: 0.72rem;
+  color: #5B21B6;
+  font-weight: 600;
+}
+.cart-rx-fields input {
+  padding: 7px 10px !important;
+  font-size: 0.8rem !important;
+  border-radius: 8px !important;
+  border: 1px solid #DDD6FE !important;
+  background: #FAF8FF !important;
+}
+.cart-rx-fields input:focus {
+  border-color: #7C3AED !important;
+  background: #FFFFFF !important;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14) !important;
+}
+
+/* Auto-fill & Read-only Pharmacist Box */
+.pharmacist-readonly-box {
+  border: 1.5px solid var(--accent-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-top: 16px;
+  background: var(--surface);
+}
+.pharmacist-readonly-box .fs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.pharmacist-readonly-box .fs-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+.pharmacist-readonly-box .fs-badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-ghost);
+  border: 1px solid var(--accent-border);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+.pharmacist-input-readonly {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.pharmacist-input-readonly .ph-lock-icon {
+  position: absolute;
+  left: 12px;
+  font-size: 0.85rem;
+  color: var(--text-3);
+  pointer-events: none;
+  user-select: none;
+}
+.pharmacist-input-readonly input.input-readonly {
+  padding-left: 34px !important;
+  background: #EAF3F1 !important;
+  border-color: rgba(26, 122, 110, 0.22) !important;
+  color: var(--text-1) !important;
+  font-weight: 600;
+  cursor: not-allowed;
+  user-select: none;
+  opacity: 0.95;
+}
+.ph-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: var(--text-3);
+}
+
 .qty { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: 100px; overflow: hidden; }
 .qty button { width: 28px; height: 28px; font-weight: 700; color: var(--accent); }
 .qty button:hover { background: var(--accent-ghost); }
@@ -292,6 +437,84 @@ tr.voided td { opacity: .55; text-decoration: line-through; }
 .fake-qr { width: 84px; height: 84px; flex-shrink: 0; border-radius: 8px; background:
   conic-gradient(from 90deg at 30% 30%, #0D1E1C 25%, transparent 0) 0 0/14px 14px,
   linear-gradient(45deg, #0D1E1C 25%, transparent 25%, transparent 75%, #0D1E1C 75%) 0 0/10px 10px, #fff; border: 6px solid #fff; outline: 1px solid var(--border); }
+
+/* Upgraded Category Badges (UI Indicators) */
+.cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.cat-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* ยาควบคุมพิเศษ (Controlled Drug) */
+.cat-badge.cat-controlled {
+  background: #EDE9FE;
+  color: #5B21B6;
+  border-color: #C4B5FD;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(109, 40, 217, 0.12);
+}
+
+/* ยาอันตราย (Dangerous Drug) */
+.cat-badge.cat-danger {
+  background: #FFEDD5;
+  color: #9A3412;
+  border-color: #FED7AA;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(194, 65, 12, 0.1);
+}
+
+/* ยาสามัญประจำบ้าน (Household Drug) */
+.cat-badge.cat-household {
+  background: #E6F4EA;
+  color: #137333;
+  border-color: #A8DAB5;
+  font-weight: 600;
+}
+
+/* ยาบรรจุเสร็จที่ไม่ใช่ยาอันตราย */
+.cat-badge.cat-packaged {
+  background: #E0F2FE;
+  color: #0369A1;
+  border-color: #BAE6FD;
+}
+
+/* เวชสำอาง */
+.cat-badge.cat-cosmetic {
+  background: #FCE7F3;
+  color: #BE185D;
+  border-color: #FBCFE8;
+}
+
+/* อุปกรณ์การแพทย์ */
+.cat-badge.cat-medical {
+  background: #ECFDF5;
+  color: #047857;
+  border-color: #A7F3D0;
+}
+
+/* อาหารเสริม */
+.cat-badge.cat-supplement {
+  background: #FEF9C3;
+  color: #854D0E;
+  border-color: #FDE047;
+}
+
+/* Fallback colors */
 .cat-0 { --c: var(--accent); } .cat-1 { --c: var(--danger); } .cat-2 { --c: var(--violet); }
 .cat-3 { --c: #0369A1; } .cat-4 { --c: #BE185D; } .cat-5 { --c: #4D7C0F; } .cat-6 { --c: var(--warn); }
 .cat-tag { font-size: .68rem; font-weight: 600; color: var(--c); display: inline-flex; align-items: center; gap: 5px; }
