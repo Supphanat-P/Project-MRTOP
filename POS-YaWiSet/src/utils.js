@@ -7,6 +7,43 @@ export const CATEGORIES = [
   'อุปกรณ์การแพทย์',
   'อาหารเสริม',
 ]
+export const CATEGORY_INFO = {
+  'ยาควบคุมพิเศษ': {
+    cls: 'cat-controlled',
+    badgeText: 'ยาควบคุมพิเศษ',
+    desc: 'ต้องมีใบสั่งแพทย์กำกับ',
+  },
+  'ยาอันตราย': {
+    cls: 'cat-danger',
+    badgeText: 'ยาอันตราย',
+    desc: 'ต้องจ่ายโดยเภสัชกร',
+  },
+  'ยาสามัญประจำบ้าน': {
+    cls: 'cat-household',
+    badgeText: 'ยาสามัญประจำบ้าน',
+    desc: 'ยาสามัญประจำบ้าน',
+  },
+  'ยาบรรจุเสร็จที่ไม่ใช่ยาอันตราย': {
+    cls: 'cat-packaged',
+    badgeText: 'ยาบรรจุเสร็จ',
+    desc: 'ยาบรรจุเสร็จทั่วไป',
+  },
+  'เวชสำอาง': {
+    cls: 'cat-cosmetic',
+    badgeText: 'เวชสำอาง',
+    desc: 'เวชสำอาง',
+  },
+  'อุปกรณ์การแพทย์': {
+    cls: 'cat-medical',
+    badgeText: 'อุปกรณ์การแพทย์',
+    desc: 'อุปกรณ์ทางการแพทย์',
+  },
+  'อาหารเสริม': {
+    cls: 'cat-supplement',
+    badgeText: 'อาหารเสริม',
+    desc: 'ผลิตภัณฑ์เสริมอาหาร',
+  },
+}
 export const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
 export const UNITS = ['แผง', 'เม็ด', 'แคปซูล', 'ขวด', 'ซอง', 'กล่อง', 'หลอด', 'ชิ้น']
 export const ROLE_LABEL = { admin: 'เจ้าของร้าน', pharmacist: 'เภสัชกร' }
