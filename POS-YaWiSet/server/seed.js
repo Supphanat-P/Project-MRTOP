@@ -52,8 +52,8 @@ export async function seedDatabase(conn) {
     for (const [lotNo, qty, expIn] of lots) {
       await conn.query('INSERT INTO product_lots (product_id, lot_no, exp, qty) VALUES (?,?,?,?)', [id, lotNo, d(expIn), qty])
       await conn.query(
-        "INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, note, staff_id) VALUES (?, 'receive', ?, ?, ?, ?, ?, 'ยอดยกมา (ข้อมูลตัวอย่าง)', 's1')",
-        [at, id, name, lotNo, d(expIn), qty],
+        "INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, balance, note, staff_id) VALUES (?, 'receive', ?, ?, ?, ?, ?, ?, 'ยอดยกมา (ข้อมูลตัวอย่าง)', 's1')",
+        [at, id, name, lotNo, d(expIn), qty, qty],
       )
     }
   }

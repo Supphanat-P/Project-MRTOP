@@ -34,6 +34,11 @@ try {
     }
     console.log(`เพิ่มระบบสมาชิกแล้ว (ให้รหัสสมาชิกกับลูกค้าเดิม ${old.length} คน)`)
   }
+  const [mcols] = await conn.query("SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'stock_moves'", [DB_NAME])
+  if (!mcols.some((x) => x.c === 'detail')) {
+    await conn.query('ALTER TABLE stock_moves ADD COLUMN balance INT NULL AFTER qty, ADD COLUMN detail VARCHAR(500) NULL AFTER note')
+    console.log('เพิ่มคอลัมน์คงเหลือและรายละเอียดในประวัติสต็อกแล้ว')
+  }
   const [lic] = await conn.query(`UPDATE staff SET lic_expires = CASE WHEN YEAR(lic_issued) <= ${LIFETIME_LAST_YEAR} THEN NULL ELSE DATE_ADD(lic_issued, INTERVAL 5 YEAR) END
     WHERE lic_no IS NOT NULL AND lic_issued IS NOT NULL`)
   if (lic.changedRows) console.log(`ปรับวันหมดอายุใบอนุญาตตามวันออกใบอนุญาตแล้ว ${lic.changedRows} คน`)

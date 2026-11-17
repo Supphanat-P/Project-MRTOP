@@ -67,3 +67,16 @@ export const licenseExpiry = (issued) => {
   const lastDay = new Date(Date.UTC(y + 5, mo, 0)).getUTCDate()
   return `${y + 5}-${m[2]}-${String(Math.min(d, lastDay)).padStart(2, '0')}`
 }
+
+export const SELL_BEFORE_MONTHS = 6
+export const addMonths = (s, n) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '')
+  if (!m) return null
+  const t = +m[1] * 12 + (+m[2] - 1) + n
+  const y = Math.floor(t / 12)
+  const mo = t - y * 12 + 1
+  const last = new Date(Date.UTC(y, mo, 0)).getUTCDate()
+  return `${y}-${String(mo).padStart(2, '0')}-${String(Math.min(+m[3], last)).padStart(2, '0')}`
+}
+export const sellCutoff = (exp) => addMonths(exp, -SELL_BEFORE_MONTHS)
+export const isSellable = (exp, today) => today < sellCutoff(exp)

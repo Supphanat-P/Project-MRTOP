@@ -68,7 +68,7 @@ export default function Staff() {
       <div className="card" style={{ marginTop: 20 }}>
         <h3>สิทธิ์ตามบทบาท</h3>
         <div className="grid two" style={{ gap: 14 }}>
-          <div className="alert"><b>เจ้าของร้าน (Admin)</b><br />ทุกเมนู · จัดการผู้ใช้ (เพิ่ม/แก้ไข/ลบ/ตั้ง PIN) · รีเซ็ตข้อมูล</div>
+          <div className="alert"><b>แอดมิน (Admin)</b><br />ทุกเมนู · จัดการผู้ใช้ (เพิ่ม/แก้ไข/ลบ/ตั้ง PIN) · รีเซ็ตข้อมูล</div>
           <div className="alert"><b>เภสัชกร (Pharmacist)</b><br />ขายและจ่ายยา · จัดการคลังยา · ยกเลิกบิล · ข้อมูลร้านและลูกค้า · ทุกอย่างยกเว้นจัดการผู้ใช้</div>
         </div>
       </div>
@@ -123,7 +123,7 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
       {s.role === 'admin' && (
         <label className="check" style={{ marginTop: 14 }}>
           <input type="checkbox" checked={ownerLic} onChange={(e) => setOwnerLic(e.target.checked)} />
-          เจ้าของร้านเป็นเภสัชกรด้วย (มีใบประกอบวิชาชีพ)
+          แอดมินเป็นเภสัชกรด้วย (มีใบประกอบวิชาชีพ)
         </label>
       )}
       {isPh && (
