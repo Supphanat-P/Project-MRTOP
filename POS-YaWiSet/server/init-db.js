@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import mysql from 'mysql2/promise'
-import { dbConfig, DB_NAME } from './db.js'
+import { dbConfig, DB_NAME, LIFETIME_LAST_YEAR } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const reset = process.argv.includes('--reset')
@@ -34,6 +34,14 @@ try {
     }
     console.log(`เพิ่มระบบสมาชิกแล้ว (ให้รหัสสมาชิกกับลูกค้าเดิม ${old.length} คน)`)
   }
+  const [mcols] = await conn.query("SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'stock_moves'", [DB_NAME])
+  if (!mcols.some((x) => x.c === 'detail')) {
+    await conn.query('ALTER TABLE stock_moves ADD COLUMN balance INT NULL AFTER qty, ADD COLUMN detail VARCHAR(500) NULL AFTER note')
+    console.log('เพิ่มคอลัมน์คงเหลือและรายละเอียดในประวัติสต็อกแล้ว')
+  }
+  const [lic] = await conn.query(`UPDATE staff SET lic_expires = CASE WHEN YEAR(lic_issued) <= ${LIFETIME_LAST_YEAR} THEN NULL ELSE DATE_ADD(lic_issued, INTERVAL 5 YEAR) END
+    WHERE lic_no IS NOT NULL AND lic_issued IS NOT NULL`)
+  if (lic.changedRows) console.log(`ปรับวันหมดอายุใบอนุญาตตามวันออกใบอนุญาตแล้ว ${lic.changedRows} คน`)
   const [[{ n }]] = await conn.query('SELECT COUNT(*) AS n FROM staff')
   if (n > 0 && !reset) {
     console.log('มีข้อมูลอยู่แล้ว - ข้ามการใส่ข้อมูลตัวอย่าง (ใช้ npm run db:reset เพื่อล้างแล้วใส่ใหม่)')

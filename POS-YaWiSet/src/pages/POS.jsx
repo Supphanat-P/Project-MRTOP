@@ -10,13 +10,14 @@ import {
   blankMember,
   memberStats,
   PHARMACIST_ONLY,
-  printModal,
   stockOf,
   thDate,
 } from "../utils.js";
 import { Badge, CatIcon, CatTag, Field, Modal } from "../components/ui.jsx";
 import ReceiptView, { DrugLabel } from "../components/ReceiptView.jsx";
 import MemberForm from "../components/MemberForm.jsx";
+import PrintButtons from "../components/PrintButtons.jsx";
+import { labelsDoc, receiptDoc } from "../pdf.js";
 
 function MemberPicker({ customer, onPick }) {
   const { state, act, busy } = useStore();
@@ -622,9 +623,14 @@ export default function POS() {
               <button className="btn" onClick={() => setDone(null)}>
                 ปิด
               </button>
-              <button className="btn primary" onClick={printModal}>
-                พิมพ์
-              </button>
+              <PrintButtons
+                build={() =>
+                  printMode === "receipt"
+                    ? receiptDoc(doneReceipt, state)
+                    : labelsDoc(doneReceipt, state)
+                }
+                filename={`${printMode === "receipt" ? "receipt" : "label"}-${doneReceipt.no}.pdf`}
+              />
             </>
           }
         >

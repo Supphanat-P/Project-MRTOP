@@ -46,9 +46,9 @@ export const CATEGORY_INFO = {
 }
 export const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
 export const UNITS = ['แผง', 'เม็ด', 'แคปซูล', 'ขวด', 'ซอง', 'กล่อง', 'หลอด', 'ชิ้น']
-export const ROLE_LABEL = { admin: 'เจ้าของร้าน', pharmacist: 'เภสัชกร' }
+export const ROLE_LABEL = { admin: 'แอดมิน', pharmacist: 'เภสัชกร' }
 export const PAY_LABEL = { cash: 'เงินสด', qr: 'พร้อมเพย์', card: 'บัตร' }
-export const MOVE_LABEL = { receive: 'รับเข้า', sale: 'ขาย', write_off: 'ตัดจำหน่าย', void: 'คืนจากยกเลิกบิล', adjust: 'ปรับยอด' }
+export const MOVE_LABEL = { receive: 'รับเข้า', sale: 'ขาย', write_off: 'ตัดสต็อก', void: 'คืนจากยกเลิกบิล', adjust: 'ปรับยอด' }
 export const catIndex = (c) => Math.max(0, CATEGORIES.indexOf(c))
 
 export const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4)
@@ -105,22 +105,71 @@ export const memberStats = (receipts, id) => {
   return { visits: rs.length, total: rs.reduce((s, r) => s + r.total, 0), last: rs.at(-1)?.at }
 }
 
-export const stockOf = (p) => p.lots.reduce((s, l) => s + (daysUntil(l.exp) >= 0 ? l.qty : 0), 0)
-export const expiredQty = (p) => p.lots.reduce((s, l) => s + (daysUntil(l.exp) < 0 ? l.qty : 0), 0)
-export const nextExp = (p) => p.lots.filter((l) => daysUntil(l.exp) >= 0).map((l) => l.exp).sort()[0]
+export const SELL_BEFORE_MONTHS = 6
+export const SELL_SOON_DAYS = 90
 
-export const expStatus = (exp) => {
-  const n = daysUntil(exp)
-  if (n < 0) return { cls: 'danger', label: 'หมดอายุ' }
-  if (n <= 90) return { cls: 'warn', label: `อีก ${n} วัน` }
-  return { cls: 'ok', label: thDate(exp) }
+export const addMonths = (s, n) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '')
+  if (!m) return null
+  const t = +m[1] * 12 + (+m[2] - 1) + n
+  const y = Math.floor(t / 12)
+  const mo = t - y * 12 + 1
+  const last = new Date(Date.UTC(y, mo, 0)).getUTCDate()
+  return `${y}-${String(mo).padStart(2, '0')}-${String(Math.min(+m[3], last)).padStart(2, '0')}`
 }
+export const sellCutoff = (exp) => addMonths(exp, -SELL_BEFORE_MONTHS)
+
+export const lotStatus = (l) => {
+  const cutoff = sellCutoff(l.exp)
+  const n = daysUntil(cutoff)
+  const left = daysUntil(l.exp)
+  const base = { cutoff, days: n, sellable: n > 0, sellQty: n > 0 ? l.qty : 0 }
+  if (left < 0) return { ...base, key: 'expired', cls: 'danger', label: 'หมดอายุ', note: `เลยวันหมดอายุมา ${-left} วัน` }
+  if (n <= 0) return { ...base, key: 'expired', cls: 'danger', label: 'หมดอายุ', note: `เหลืออายุ ${left} วัน (ไม่ถึง ${SELL_BEFORE_MONTHS} เดือน) ห้ามขาย` }
+  if (n <= SELL_SOON_DAYS) return { ...base, key: 'soon', cls: 'warn', label: `ขายได้อีก ${n} วัน`, note: `ต้องขายก่อน ${thDate(cutoff)}` }
+  return { ...base, key: 'ok', cls: 'ok', label: `ขายได้อีก ${n} วัน`, note: `ขายได้ก่อน ${thDate(cutoff)}` }
+}
+
+export const totalQty = (p) => p.lots.reduce((s, l) => s + l.qty, 0)
+export const stockOf = (p) => p.lots.reduce((s, l) => s + lotStatus(l).sellQty, 0)
+export const expiredQty = (p) => totalQty(p) - stockOf(p)
+export const nextLot = (p) => p.lots.filter((l) => lotStatus(l).sellable).sort((a, b) => (a.exp < b.exp ? -1 : 1))[0]
+
+export const LIFETIME_LAST_YEAR = 2015
+export const LICENSE_RENEW_DAYS = 150
+export const LICENSE_NO_DIGITS = 5
+export const isLicenseNo = (s) => /^ภ\.\d+$/.test(s || '') && s.length - 2 <= LICENSE_NO_DIGITS
+export const toLicenseNo = (v) => {
+  const d = String(v || '').replace(/\D/g, '').slice(0, LICENSE_NO_DIGITS)
+  return d ? 'ภ.' + d : ''
+}
+
+export const renewFrom = (lic) => {
+  if (!lic?.expires) return null
+  const t = new Date(lic.expires + 'T00:00:00')
+  t.setDate(t.getDate() - LICENSE_RENEW_DAYS)
+  return t.toLocaleDateString('sv-SE')
+}
+
+export const licenseExpiry = (issued) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(issued || '')
+  if (!m) return null
+  const [y, mo, d] = m.slice(1).map(Number)
+  if (y <= LIFETIME_LAST_YEAR) return null
+  const lastDay = new Date(Date.UTC(y + 5, mo, 0)).getUTCDate()
+  return `${y + 5}-${m[2]}-${String(Math.min(d, lastDay)).padStart(2, '0')}`
+}
+
+export const isLifetime = (lic) => !!lic && !lic.expires
+
+export const licenseUntil = (lic, long = false) => (isLifetime(lic) ? 'ตลอดชีพ' : long ? thDateLong(lic?.expires) : thDate(lic?.expires))
 
 export const licenseStatus = (lic) => {
   if (!lic) return { key: 'none', label: 'ไม่มีใบอนุญาต', cls: 'muted' }
+  if (isLifetime(lic)) return { key: 'ok', label: 'ตลอดชีพ', cls: 'ok', days: Infinity }
   const n = daysUntil(lic.expires)
   if (n < 0) return { key: 'expired', label: 'หมดอายุแล้ว', cls: 'danger', days: n }
-  if (n <= 60) return { key: 'soon', label: `ใกล้หมดอายุ (${n} วัน)`, cls: 'warn', days: n }
+  if (n <= LICENSE_RENEW_DAYS) return { key: 'soon', label: `ใกล้หมดอายุ (${n} วัน)`, cls: 'warn', days: n }
   return { key: 'ok', label: 'ใช้งานได้', cls: 'ok', days: n }
 }
 
@@ -134,8 +183,4 @@ export const downloadCSV = (filename, rows) => {
   URL.revokeObjectURL(a.href)
 }
 
-export const printModal = () => {
-  document.body.classList.add('printing')
-  window.print()
-  document.body.classList.remove('printing')
-}
+

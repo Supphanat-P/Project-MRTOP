@@ -1,4 +1,4 @@
-import { licenseStatus, thDateLong } from '../utils.js'
+import { isLifetime, licenseStatus, thDateLong } from '../utils.js'
 
 export default function LicenseDoc({ staff, shop }) {
   const lic = staff.license || {}
@@ -34,7 +34,7 @@ export default function LicenseDoc({ staff, shop }) {
             <dt>วุฒิการศึกษา</dt><dd>{lic.degree || '-'}</dd>
             <dt>สถาบันที่สำเร็จการศึกษา</dt><dd>{lic.university || '-'}</dd>
             <dt>วันที่ออกใบอนุญาต</dt><dd>{thDateLong(lic.issued)}</dd>
-            <dt>ใช้ได้ถึงวันที่</dt><dd style={{ color: st.cls === 'danger' ? 'var(--danger)' : st.cls === 'warn' ? 'var(--warn)' : undefined }}>{thDateLong(lic.expires)} · {st.label}</dd>
+            <dt>ใช้ได้ถึงวันที่</dt><dd style={{ color: st.cls === 'danger' ? 'var(--danger)' : st.cls === 'warn' ? 'var(--warn)' : undefined }}>{isLifetime(lic) ? 'ตลอดชีพ' : `${thDateLong(lic.expires)} · ${st.label}`}</dd>
           </dl>
         </div>
       </div>

@@ -30,6 +30,7 @@ export default function ReceiptView({ receipt: r }) {
       <div className="ln"><span>รวม</span><span>{baht(r.subtotal)}</span></div>
       {r.discount > 0 && <div className="ln"><span>ส่วนลด</span><span>-{baht(r.discount)}</span></div>}
       <div className="ln b" style={{ fontSize: '.95rem' }}><span>ยอดสุทธิ</span><span>{baht(r.total)}</span></div>
+      <div style={{ textAlign: 'right', fontSize: '.7rem', opacity: .7 }}>VAT Included</div>
       <div className="ln"><span>ชำระโดย {PAY_LABEL[r.payment]}</span><span>{baht(r.received)}</span></div>
       {r.payment === 'cash' && <div className="ln"><span>เงินทอน</span><span>{baht(r.change)}</span></div>}
       <hr />

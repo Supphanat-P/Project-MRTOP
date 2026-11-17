@@ -2,7 +2,7 @@ import express from 'express'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { fromDT, hashPin, HttpError, localDate, newId, pool, toDT, tx, verifyPin } from './db.js'
+import { fromDT, hashPin, HttpError, isLicenseNo, isSellable, LICENSE_NO_DIGITS, licenseExpiry, localDate, newId, pool, toDT, tx, verifyPin } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const app = express()
@@ -11,7 +11,7 @@ app.use(express.json({ limit: '1mb' }))
 const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
 const ROLES = ['admin', 'pharmacist']
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
-const okId = (s) => /^[a-z0-9]{4,20}$/.test(s || '')
+const okId = (s) => /^[a-z0-9]{2,20}$/.test(s || '')
 
 const sessions = new Map()
 const SESSION_MS = 12 * 60 * 60 * 1000
@@ -24,6 +24,10 @@ function auth(req, _res, next) {
   req.user = s
   req.token = token
   next()
+}
+const lotQty = async (c, productId, lotNo, exp) => {
+  const [[l]] = await c.query('SELECT qty FROM product_lots WHERE product_id = ? AND lot_no = ? AND exp = ?', [productId, lotNo, exp])
+  return l?.qty ?? 0
 }
 const role = (...roles) => (req, _res, next) =>
   roles.includes(req.user.role) ? next() : next(new HttpError(403, 'ไม่มีสิทธิ์ทำรายการนี้'))
@@ -38,8 +42,8 @@ const mapSettings = (r) => r ? ({
 
 async function move(c, m) {
   await c.query(
-    'INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, ref, note, staff_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
-    [m.at || toDT(), m.type, m.productId, m.name, m.lotNo || null, m.exp || null, m.qty, m.ref || null, m.note || null, m.staffId || null],
+    'INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, balance, ref, note, detail, staff_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+    [m.at || toDT(), m.type, m.productId, m.name, m.lotNo || null, m.exp || null, m.qty, m.balance ?? null, m.ref || null, m.note || null, m.detail || null, m.staffId || null],
   )
 }
 
@@ -76,9 +80,21 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
   const [items] = await pool.query('SELECT * FROM receipt_items ORDER BY id')
   const [itemLots] = await pool.query('SELECT * FROM receipt_item_lots ORDER BY id')
   const [moves] = await pool.query('SELECT * FROM stock_moves ORDER BY at DESC, id DESC LIMIT 1000')
+  const [lotSums] = await pool.query(`SELECT product_id, lot_no, exp,
+      SUM(CASE WHEN type = 'receive' THEN qty ELSE 0 END) AS received,
+      -SUM(CASE WHEN type IN ('sale','void') THEN qty ELSE 0 END) AS sold
+    FROM stock_moves WHERE lot_no IS NOT NULL AND exp IS NOT NULL GROUP BY product_id, lot_no, exp`)
+  const sumBy = {}
+  for (const x of lotSums) sumBy[`${x.product_id}|${x.lot_no}|${x.exp}`] = x
 
   const lotsBy = {}
-  for (const l of lots) (lotsBy[l.product_id] ||= []).push({ lotNo: l.lot_no, exp: l.exp, qty: l.qty })
+  for (const l of lots) {
+    const x = sumBy[`${l.product_id}|${l.lot_no}|${l.exp}`]
+    const sold = Number(x?.sold || 0)
+    const received = Math.max(Number(x?.received || 0), l.qty + sold)
+    lotsBy[l.product_id] ||= []
+    lotsBy[l.product_id].push({ lotNo: l.lot_no, exp: l.exp, qty: l.qty, received, sold })
+  }
   const ilBy = {}
   for (const l of itemLots) (ilBy[l.receipt_item_id] ||= []).push({ lotNo: l.lot_no, exp: l.exp, qty: l.qty })
   const itemsBy = {}
@@ -105,7 +121,7 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
     })),
     moves: moves.map((m) => ({
       id: m.id, at: fromDT(m.at), type: m.type, productId: m.product_id, name: m.name, lotNo: m.lot_no, exp: m.exp,
-      qty: m.qty, ref: m.ref, note: m.note, staffId: m.staff_id,
+      qty: m.qty, balance: m.balance, ref: m.ref, note: m.note, detail: m.detail, staffId: m.staff_id,
     })),
   })
 }))
@@ -159,25 +175,36 @@ app.post('/api/receive', role('admin', 'pharmacist'), wrap(async (req, res) => {
       [productId, lotNo.trim(), exp, n],
     )
     if (Number(cost) > 0) await c.query('UPDATE products SET cost = ? WHERE id = ?', [Number(cost), productId])
-    await move(c, { type: 'receive', productId, name: p.name, lotNo: lotNo.trim(), exp, qty: n, ref: invoiceNo, note: supplier ? 'จาก ' + supplier : null, staffId: req.user.staffId })
+    const balance = await lotQty(c, productId, lotNo.trim(), exp)
+    await move(c, { type: 'receive', productId, name: p.name, lotNo: lotNo.trim(), exp, qty: n, balance, ref: invoiceNo, note: supplier ? 'จาก ' + supplier : null, staffId: req.user.staffId })
   })
   res.json({ ok: true })
 }))
 
 app.post('/api/write-off', role('admin', 'pharmacist'), wrap(async (req, res) => {
-  const { productId, lotNo, exp, reason } = req.body || {}
+  const { productId, lotNo, exp, qty, ref } = req.body || {}
+  const reason = req.body?.reason?.trim()
+  const detail = req.body?.detail?.trim()
+  if (!reason) throw new HttpError(400, 'กรุณาเลือกสาเหตุการตัดสต็อก')
+  if (!detail) throw new HttpError(400, 'กรุณากรอกรายละเอียดการตัดสต็อก')
+  if (detail.length > 500) throw new HttpError(400, 'รายละเอียดยาวเกิน 500 ตัวอักษร')
   await tx(async (c) => {
     const [[p]] = await c.query('SELECT * FROM products WHERE id = ?', [productId])
     const [[l]] = await c.query('SELECT * FROM product_lots WHERE product_id = ? AND lot_no = ? AND exp = ? FOR UPDATE', [productId, lotNo, exp])
     if (!p || !l?.qty) throw new HttpError(404, 'ไม่พบ Lot นี้')
-    await c.query('DELETE FROM product_lots WHERE id = ?', [l.id])
-    await move(c, { type: 'write_off', productId, name: p.name, lotNo, exp, qty: -l.qty, note: reason || null, staffId: req.user.staffId })
+    const n = parseInt(qty)
+    if (!(n > 0) || n > l.qty) throw new HttpError(400, `จำนวนที่ตัดต้องอยู่ระหว่าง 1 - ${l.qty}`)
+    const balance = l.qty - n
+    if (balance === 0) await c.query('DELETE FROM product_lots WHERE id = ?', [l.id])
+    else await c.query('UPDATE product_lots SET qty = ? WHERE id = ?', [balance, l.id])
+    await move(c, { type: 'write_off', productId, name: p.name, lotNo, exp, qty: -n, balance, ref: ref?.trim().slice(0, 100), note: reason.slice(0, 300), detail, staffId: req.user.staffId })
   })
   res.json({ ok: true })
 }))
 
 app.post('/api/adjust', role('admin', 'pharmacist'), wrap(async (req, res) => {
   const { productId, lotNo, exp, count, reason } = req.body || {}
+  const detail = req.body?.detail?.trim().slice(0, 500)
   const n = parseInt(count)
   if (!(n >= 0)) throw new HttpError(400, 'จำนวนที่นับได้ไม่ถูกต้อง')
   await tx(async (c) => {
@@ -188,7 +215,7 @@ app.post('/api/adjust', role('admin', 'pharmacist'), wrap(async (req, res) => {
     if (!diff) return
     if (n === 0) await c.query('DELETE FROM product_lots WHERE id = ?', [l.id])
     else await c.query('UPDATE product_lots SET qty = ? WHERE id = ?', [n, l.id])
-    await move(c, { type: 'adjust', productId, name: p.name, lotNo, exp, qty: diff, note: reason || 'ตรวจนับสต็อก', staffId: req.user.staffId })
+    await move(c, { type: 'adjust', productId, name: p.name, lotNo, exp, qty: diff, balance: n, note: reason || 'ตรวจนับสต็อก', detail, staffId: req.user.staffId })
   })
   res.json({ ok: true })
 }))
@@ -242,12 +269,13 @@ app.post('/api/checkout', wrap(async (req, res) => {
     )
 
     for (const { p, qty } of lines) {
-      const [lots] = await c.query(
-        'SELECT id, lot_no, exp, qty FROM product_lots WHERE product_id = ? AND exp >= ? AND qty > 0 ORDER BY exp FOR UPDATE',
-        [p.id, today],
+      const [all] = await c.query(
+        'SELECT id, lot_no, exp, qty FROM product_lots WHERE product_id = ? AND qty > 0 ORDER BY exp FOR UPDATE',
+        [p.id],
       )
+      const lots = all.filter((l) => isSellable(l.exp, today))
       const avail = lots.reduce((s, l) => s + l.qty, 0)
-      if (avail < qty) throw new HttpError(409, `${p.name} สต็อกไม่พอ (เหลือ ${avail} ${p.unit})`)
+      if (avail < qty) throw new HttpError(409, `${p.name} สต็อกพร้อมขายไม่พอ (ขายได้ ${avail} ${p.unit})`)
 
       const [ins] = await c.query(
         'INSERT INTO receipt_items (receipt_id, product_id, name, category, unit, price, cost, qty, dosage) VALUES (?,?,?,?,?,?,?,?,?)',
@@ -261,7 +289,7 @@ app.post('/api/checkout', wrap(async (req, res) => {
         if (take === l.qty) await c.query('DELETE FROM product_lots WHERE id = ?', [l.id])
         else await c.query('UPDATE product_lots SET qty = qty - ? WHERE id = ?', [take, l.id])
         await c.query('INSERT INTO receipt_item_lots (receipt_item_id, lot_no, exp, qty) VALUES (?,?,?,?)', [ins.insertId, l.lot_no, l.exp, take])
-        await move(c, { at, type: 'sale', productId: p.id, name: p.name, lotNo: l.lot_no, exp: l.exp, qty: -take, ref: no, staffId: req.user.staffId })
+        await move(c, { at, type: 'sale', productId: p.id, name: p.name, lotNo: l.lot_no, exp: l.exp, qty: -take, balance: l.qty - take, ref: no, staffId: req.user.staffId })
       }
     }
     return { id: receiptId, no }
@@ -285,7 +313,8 @@ app.post('/api/receipts/:id/void', role('admin', 'pharmacist'), wrap(async (req,
           'INSERT INTO product_lots (product_id, lot_no, exp, qty) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE qty = qty + VALUES(qty)',
           [it.product_id, l.lot_no, l.exp, l.qty],
         )
-        await move(c, { at, type: 'void', productId: it.product_id, name: it.name, lotNo: l.lot_no, exp: l.exp, qty: l.qty, ref: r.no, note: reason, staffId: req.user.staffId })
+        const balance = await lotQty(c, it.product_id, l.lot_no, l.exp)
+        await move(c, { at, type: 'void', productId: it.product_id, name: it.name, lotNo: l.lot_no, exp: l.exp, qty: l.qty, balance, ref: r.no, note: reason, staffId: req.user.staffId })
       }
     }
     await c.query('UPDATE receipts SET voided = 1, void_reason = ?, void_at = ? WHERE id = ?', [reason, at, r.id])
@@ -301,12 +330,14 @@ app.put('/api/staff/:id', role('admin'), wrap(async (req, res) => {
   if (!ROLES.includes(s.role)) throw new HttpError(400, 'บทบาทไม่ถูกต้อง')
   if (s.pin && !/^\d{4}$/.test(s.pin)) throw new HttpError(400, 'PIN ต้องเป็นตัวเลข 4 หลัก')
   const l = s.license?.no?.trim() ? s.license : null
-  if (s.role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันหมดอายุ')
-  if (l && !l.expires) throw new HttpError(400, 'กรุณาระบุวันหมดอายุใบอนุญาต')
+  if (s.role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันออกใบอนุญาต')
+  if (l && !isLicenseNo(l.no.trim())) throw new HttpError(400, `เลขที่ใบอนุญาตต้องเป็น ภ. ตามด้วยตัวเลขไม่เกิน ${LICENSE_NO_DIGITS} หลัก`)
+  if (l && !/^\d{4}-\d{2}-\d{2}$/.test(l.issued || '')) throw new HttpError(400, 'กรุณาระบุวันออกใบอนุญาต')
+  if (l && l.issued > localDate()) throw new HttpError(400, 'วันออกใบอนุญาตต้องไม่เกินวันนี้')
   if (id === req.user.staffId && s.role !== 'admin') throw new HttpError(400, 'เปลี่ยนบทบาทของตัวเองไม่ได้')
   const [[exist]] = await pool.query('SELECT id FROM staff WHERE id = ?', [id])
   if (!exist && !s.pin) throw new HttpError(400, 'พนักงานใหม่ต้องตั้ง PIN')
-  const lic = [l?.no?.trim() || null, l?.type || null, l?.issued || null, l?.expires || null, l?.university || null, l?.degree || null]
+  const lic = [l?.no?.trim() || null, l?.type || null, l?.issued || null, licenseExpiry(l?.issued), l?.university || null, l?.degree || null]
   try {
     if (exist) {
       await pool.query(

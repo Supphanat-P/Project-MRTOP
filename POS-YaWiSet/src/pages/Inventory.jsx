@@ -1,7 +1,20 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { baht, CATEGORIES, daysUntil, downloadCSV, expiredQty, expStatus, MOVE_LABEL, nextExp, num, stockOf, thDate, today, uid, UNITS } from '../utils.js'
+import { baht, CATEGORIES, downloadCSV, expiredQty, lotStatus, MOVE_LABEL, nextLot, num, SELL_BEFORE_MONTHS, SELL_SOON_DAYS, stockOf, thDate, today, totalQty, uid, UNITS } from '../utils.js'
 import { Badge, CatTag, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
+
+const WRITE_OFF_REASONS = ['ยาหมดอายุ', `เหลืออายุไม่ถึง ${SELL_BEFORE_MONTHS} เดือน (ห้ามขาย)`, 'ชำรุด / เสียหาย', 'ส่งคืนผู้จำหน่าย', 'สูญหาย', 'อื่น ๆ']
+const cutLabel = (ls) => (ls.sellable ? 'ขายได้ก่อน ' : 'หยุดขายตั้งแต่ ') + thDate(ls.cutoff)
+const lotNums = (l) => {
+  const received = l.received ?? l.qty
+  const sold = l.sold ?? 0
+  return { received, sold, removed: received - sold - l.qty }
+}
+const hasSoon = (p) => p.lots.some((l) => lotStatus(l).key === 'soon')
+const defaultReason = (l) => {
+  if (lotStatus(l).key !== 'expired') return ''
+  return l.exp < today() ? WRITE_OFF_REASONS[0] : WRITE_OFF_REASONS[1]
+}
 
 const blank = { id: '', barcode: '', name: '', generic: '', category: CATEGORIES[0], unit: 'แผง', price: '', cost: '', minStock: 10, dosage: '', lots: [] }
 
@@ -10,8 +23,11 @@ export default function Inventory() {
   const [tab, setTab] = useState('stock')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('all')
-  const [open, setOpen] = useState({})
   const [edit, setEdit] = useState(null)
+  const [hidden, setHidden] = useState({})
+  const [hideAll, setHideAll] = useState(true)
+  const lotsShown = (id) => hidden[id] ?? !hideAll
+  const toggleAll = () => { setHideAll(!hideAll); setHidden({}) }
   const [recv, setRecv] = useState(null)
   const [lotAct, setLotAct] = useState(null)
 
@@ -20,7 +36,7 @@ export default function Inventory() {
     return state.products.filter((p) => {
       if (k && !(p.name.toLowerCase().includes(k) || p.generic.toLowerCase().includes(k) || p.barcode.includes(k))) return false
       if (filter === 'low') return stockOf(p) <= p.minStock
-      if (filter === 'soon') return p.lots.some((l) => { const n = daysUntil(l.exp); return n >= 0 && n <= 90 })
+      if (filter === 'soon') return hasSoon(p)
       if (filter === 'expired') return expiredQty(p) > 0
       return true
     })
@@ -29,13 +45,17 @@ export default function Inventory() {
   const totals = useMemo(() => ({
     value: state.products.reduce((s, p) => s + stockOf(p) * p.cost, 0),
     low: state.products.filter((p) => stockOf(p) <= p.minStock).length,
-    soon: state.products.filter((p) => p.lots.some((l) => { const n = daysUntil(l.exp); return n >= 0 && n <= 90 })).length,
+    soon: state.products.filter(hasSoon).length,
     expired: state.products.filter((p) => expiredQty(p) > 0).length,
   }), [state.products])
 
   const exportCSV = () => downloadCSV(`stock-${today()}.csv`, [
-    ['บาร์โค้ด', 'ชื่อ', 'ชื่อสามัญ', 'ประเภท', 'หน่วย', 'Lot', 'วันหมดอายุ', 'คงเหลือ', 'ทุน', 'ราคาขาย'],
-    ...state.products.flatMap((p) => (p.lots.length ? p.lots : [{ lotNo: '-', exp: '', qty: 0 }]).map((l) => [p.barcode, p.name, p.generic, p.category, p.unit, l.lotNo, l.exp, l.qty, p.cost, p.price])),
+    ['บาร์โค้ด', 'ชื่อ', 'ชื่อสามัญ', 'ประเภท', 'หน่วย', 'Lot', 'วันหมดอายุ', 'วันหยุดขาย', 'สถานะ', 'ทั้งหมด', 'ขายแล้ว', 'ตัด/ปรับ', 'คงเหลือ', 'ขายได้', 'ทุน', 'ราคาขาย'],
+    ...state.products.flatMap((p) => (p.lots.length ? p.lots : [null]).map((l) => {
+      const st = l && lotStatus(l)
+      const ln = l ? lotNums(l) : { received: 0, sold: 0, removed: 0 }
+      return [p.barcode, p.name, p.generic, p.category, p.unit, l?.lotNo || '-', l?.exp || '', st?.cutoff || '', st?.label || '', ln.received, ln.sold, ln.removed, l?.qty || 0, st?.sellQty || 0, p.cost, p.price]
+    })),
   ])
 
   return (
@@ -49,8 +69,8 @@ export default function Inventory() {
       <div className="grid stats" style={{ marginBottom: 20 }}>
         <Stat accent label="มูลค่าสต็อก (ทุน)" value={baht(totals.value)} change={`${state.products.length} รายการ`} />
         <Stat label="ต่ำกว่าขั้นต่ำ" value={num(totals.low)} change="ควรสั่งซื้อเพิ่ม" />
-        <Stat label="ใกล้หมดอายุ (≤ 90 วัน)" value={num(totals.soon)} change="ควรขายก่อน" />
-        <Stat label="มี Lot หมดอายุ" value={num(totals.expired)} change="ควรตัดจำหน่าย" />
+        <Stat label={`ต้องขายภายใน ${SELL_SOON_DAYS} วัน`} value={num(totals.soon)} change={`ต้องขายก่อนหมดอายุ ${SELL_BEFORE_MONTHS} เดือน`} />
+        <Stat label="มี Lot หมดอายุ" value={num(totals.expired)} change={`รวมที่เหลืออายุไม่ถึง ${SELL_BEFORE_MONTHS} เดือน · ควรตัดสต็อก`} />
       </div>
 
       <div className="row" style={{ marginBottom: 14 }}>
@@ -65,48 +85,59 @@ export default function Inventory() {
           <div className="row" style={{ padding: 16 }}>
             <div className="search"><input placeholder="ค้นหาชื่อ / ชื่อสามัญ / บาร์โค้ด" value={q} onChange={(e) => setQ(e.target.value)} /></div>
             <div className="seg">
-              {[['all', 'ทั้งหมด'], ['low', 'ใกล้หมด'], ['soon', 'ใกล้หมดอายุ'], ['expired', 'หมดอายุ']].map(([k, v]) => (
+              {[['all', 'ทั้งหมด'], ['low', 'ใกล้หมด'], ['soon', 'ต้องรีบขาย'], ['expired', 'หมดอายุ']].map(([k, v]) => (
                 <button key={k} className={filter === k ? 'on' : ''} onClick={() => setFilter(k)}>{v}</button>
               ))}
             </div>
+            <button className="btn sm ghost" onClick={toggleAll}>{hideAll ? 'แสดง Lot ทั้งหมด' : 'ซ่อน Lot ทั้งหมด'}</button>
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>สินค้า</th><th>ประเภท</th><th className="right">ราคา / ทุน</th><th className="right">คงเหลือ</th><th>หมดอายุถัดไป</th><th></th></tr></thead>
+              <thead><tr><th>สินค้า / Lot</th><th>ประเภท</th><th className="right">ราคา / ทุน</th><th className="right">ทั้งหมด</th><th className="right">ขายแล้ว</th><th className="right">คงเหลือ</th><th className="right">ขายได้</th><th>สถานะ</th><th></th></tr></thead>
               <tbody>
                 {rows.map((p) => {
                   const st = stockOf(p)
-                  const ne = nextExp(p)
+                  const sum = p.lots.reduce((a, l) => { const n = lotNums(l); return { received: a.received + n.received, sold: a.sold + n.sold } }, { received: 0, sold: 0 })
+                  const nl = nextLot(p)
+                  const ns = nl && lotStatus(nl)
                   return (
                     <Fragment key={p.id}>
                       <tr>
                         <td><b>{p.name}</b><br /><small className="muted">{p.generic} · <span className="mono">{p.barcode}</span></small></td>
                         <td><CatTag category={p.category} /></td>
                         <td className="right nowrap">{baht(p.price)}<br /><small className="muted">ทุน {baht(p.cost)}</small></td>
-                        <td className="right nowrap"><Badge cls={!st ? 'danger' : st <= p.minStock ? 'warn' : 'ok'}>{st} {p.unit}</Badge>
-                          {expiredQty(p) > 0 && <><br /><small style={{ color: 'var(--danger)' }}>หมดอายุ {expiredQty(p)}</small></>}</td>
-                        <td>{ne ? <Badge cls={expStatus(ne).cls}>{expStatus(ne).label}</Badge> : <span className="muted">-</span>}</td>
+                        <td className="right nowrap"><b>{num(sum.received)}</b></td>
+                        <td className="right nowrap"><b>{num(sum.sold)}</b></td>
+                        <td className="right nowrap"><b>{num(totalQty(p))}</b> <small className="muted">{p.unit}</small></td>
+                        <td className="right nowrap"><Badge cls={!st ? 'danger' : st <= p.minStock ? 'warn' : 'ok'}>{num(st)} {p.unit}</Badge></td>
+                        <td>{nl ? <Badge cls={ns.cls}>{ns.label}</Badge> : <Badge cls="danger">ไม่มีของขาย</Badge>}</td>
                         <td className="right nowrap">
-                          <button className="btn sm ghost" onClick={() => setOpen({ ...open, [p.id]: !open[p.id] })}>{open[p.id] ? 'ซ่อน' : `Lot (${p.lots.length})`}</button>
+                          <button className="btn sm ghost" onClick={() => setHidden({ ...hidden, [p.id]: !lotsShown(p.id) })}>{lotsShown(p.id) ? 'ซ่อน Lot' : `แสดง Lot (${p.lots.length})`}</button>
                           <button className="btn sm" onClick={() => setEdit({ ...p })}>แก้ไข</button>
                         </td>
                       </tr>
-                      {open[p.id] && (p.lots.length ? p.lots.map((l) => (
-                        <tr className="sub" key={l.lotNo + l.exp}>
-                          <td colSpan={2}>&nbsp;&nbsp;↳ Lot <b className="mono">{l.lotNo}</b></td>
-                          <td className="right">{thDate(l.exp)}</td>
-                          <td className="right">{l.qty} {p.unit}</td>
-                          <td><Badge cls={expStatus(l.exp).cls}>{daysUntil(l.exp) < 0 ? 'หมดอายุ' : `อีก ${daysUntil(l.exp)} วัน`}</Badge></td>
-                          <td className="right nowrap">
-                            <button className="btn sm" onClick={() => setLotAct({ kind: 'adjust', p, l, count: l.qty, reason: 'ตรวจนับสต็อก' })}>ตรวจนับ</button>
-                            <button className="btn sm danger" onClick={() => setLotAct({ kind: 'writeOff', p, l, reason: daysUntil(l.exp) < 0 ? 'ยาหมดอายุ' : '' })}>ตัดจำหน่าย</button>
-                          </td>
-                        </tr>
-                      )) : <tr className="sub"><td colSpan={6} className="muted">&nbsp;&nbsp;ยังไม่มีสต็อก</td></tr>)}
+                      {lotsShown(p.id) && (p.lots.length ? p.lots.map((l) => {
+                        const ls = lotStatus(l)
+                        const ln = lotNums(l)
+                        return (
+                          <tr className="sub" key={l.lotNo + l.exp}>
+                            <td colSpan={3}>&nbsp;&nbsp;Lot <b className="mono">{l.lotNo}</b><br /><small className="muted">&nbsp;&nbsp;หมดอายุ {thDate(l.exp)} · {cutLabel(ls)}</small></td>
+                            <td className="right nowrap">{num(ln.received)}</td>
+                            <td className="right nowrap">{num(ln.sold)}{ln.removed ? <><br /><small className="muted">ตัด/ปรับ {num(ln.removed)}</small></> : null}</td>
+                            <td className="right nowrap"><b>{num(l.qty)}</b></td>
+                            <td className="right nowrap"><b style={{ color: ls.sellable ? 'var(--accent)' : 'var(--danger)' }}>{num(ls.sellQty)}</b></td>
+                            <td><Badge cls={ls.cls}>{ls.label}</Badge><br /><small className="muted">{ls.note}</small></td>
+                            <td className="right nowrap">
+                              <button className="btn sm" onClick={() => setLotAct({ kind: 'adjust', p, l, count: l.qty, reason: 'ตรวจนับสต็อก', detail: '' })}>ตรวจนับ</button>
+                              <button className="btn sm danger" onClick={() => setLotAct({ kind: 'writeOff', p, l, qty: String(l.qty), reason: defaultReason(l), detail: '', ref: '' })}>ตัดสต็อก</button>
+                            </td>
+                          </tr>
+                        )
+                      }) : <tr className="sub"><td colSpan={9} className="muted">&nbsp;&nbsp;ยังไม่มีสต็อก</td></tr>)}
                     </Fragment>
                   )
                 })}
-                {!rows.length && <tr><td colSpan={6} className="empty">ไม่พบสินค้า</td></tr>}
+                {!rows.length && <tr><td colSpan={9} className="empty">ไม่พบสินค้า</td></tr>}
               </tbody>
             </table>
           </div>
@@ -119,8 +150,8 @@ export default function Inventory() {
       {recv && <ReceiveForm initial={recv} products={state.products} onClose={() => setRecv(null)}
         onSave={async (r) => { if (await act('receive', r, 'รับยาเข้าสต็อกแล้ว')) setRecv(null) }} />}
       {lotAct && <LotAction a={lotAct} onClose={() => setLotAct(null)} onSave={async (a) => {
-        const body = { productId: a.p.id, lotNo: a.l.lotNo, exp: a.l.exp, reason: a.reason, count: a.count }
-        if (await act(a.kind, body, a.kind === 'adjust' ? 'ปรับยอดแล้ว' : 'ตัดจำหน่ายแล้ว')) setLotAct(null)
+        const body = { productId: a.p.id, lotNo: a.l.lotNo, exp: a.l.exp, reason: a.reason, detail: a.detail, count: a.count, qty: a.qty, ref: a.ref }
+        if (await act(a.kind, body, a.kind === 'adjust' ? 'ปรับยอดแล้ว' : 'ตัดสต็อกแล้ว')) setLotAct(null)
       }} />}
     </div>
   )
@@ -142,7 +173,7 @@ function Moves() {
       </div>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>เวลา</th><th>ประเภท</th><th>สินค้า</th><th>Lot</th><th className="right">จำนวน</th><th>อ้างอิง / หมายเหตุ</th><th>ผู้ทำรายการ</th></tr></thead>
+          <thead><tr><th>เวลา</th><th>ประเภท</th><th>สินค้า</th><th>Lot</th><th className="right">จำนวน</th><th className="right">คงเหลือใน Lot</th><th>อ้างอิง / รายละเอียด</th><th>ผู้ทำรายการ</th></tr></thead>
           <tbody>
             {rows.map((m) => (
               <tr key={m.id}>
@@ -151,11 +182,12 @@ function Moves() {
                 <td>{m.name}</td>
                 <td className="mono">{m.lotNo}</td>
                 <td className="right" style={{ fontWeight: 700, color: m.qty > 0 ? 'var(--accent)' : 'var(--danger)' }}>{m.qty > 0 ? '+' : ''}{m.qty}</td>
-                <td><small>{[m.ref, m.note].filter(Boolean).join(' · ') || '-'}</small></td>
+                <td className="right muted">{m.balance ?? '-'}</td>
+                <td><small>{[m.ref, m.note].filter(Boolean).join(' · ') || '-'}</small>{m.detail && <><br /><small className="muted">{m.detail}</small></>}</td>
                 <td>{staff(m.staffId)}</td>
               </tr>
             ))}
-            {!rows.length && <tr><td colSpan={7} className="empty">ยังไม่มีรายการ</td></tr>}
+            {!rows.length && <tr><td colSpan={8} className="empty">ยังไม่มีรายการ</td></tr>}
           </tbody>
         </table>
       </div>
@@ -205,7 +237,7 @@ function ReceiveForm({ initial, products, onClose, onSave }) {
         <Field label="ผู้จำหน่าย"><input value={r.supplier} onChange={set('supplier')} /></Field>
         <Field label="เลขที่ใบส่งของ / ใบกำกับ"><input value={r.invoiceNo} onChange={set('invoiceNo')} /></Field>
       </div>
-      {r.exp && daysUntil(r.exp) < 180 && <div className="alert warn" style={{ marginTop: 14 }}>วันหมดอายุเหลือน้อยกว่า 6 เดือน</div>}
+      {r.exp && !lotStatus({ exp: r.exp, qty: 0 }).sellable && <div className="alert danger" style={{ marginTop: 14 }}>Lot นี้เหลืออายุไม่ถึง {SELL_BEFORE_MONTHS} เดือน จะเป็นสถานะหมดอายุทันทีและขายไม่ได้</div>}
     </Modal>
   )
 }
@@ -213,15 +245,42 @@ function ReceiveForm({ initial, products, onClose, onSave }) {
 function LotAction({ a: initial, onClose, onSave }) {
   const [a, setA] = useState(initial)
   const adjust = a.kind === 'adjust'
+  const set = (k) => (e) => setA({ ...a, [k]: e.target.value })
+  const ls = lotStatus(a.l)
+  const ln = lotNums(a.l)
+  const cut = parseInt(a.qty) || 0
+  const left = Math.max(a.l.qty - cut, 0)
+  const save = () => {
+    if (adjust) return onSave(a)
+    if (!a.reason) return alert('กรุณาเลือกสาเหตุ')
+    if (!(cut > 0 && cut <= a.l.qty)) return alert(`จำนวนที่ตัดต้องอยู่ระหว่าง 1 - ${a.l.qty}`)
+    if (!a.detail.trim()) return alert('กรุณากรอกรายละเอียดการตัดสต็อก')
+    onSave(a)
+  }
   return (
-    <Modal title={adjust ? 'ตรวจนับ / ปรับยอด Lot' : 'ตัดจำหน่าย / ทำลาย Lot'} onClose={onClose}
-      footer={<><button className="btn" onClick={onClose}>ยกเลิก</button><button className={'btn ' + (adjust ? 'primary' : 'danger')} onClick={() => onSave(a)}>{adjust ? 'บันทึกยอด' : 'ยืนยันตัดจำหน่าย'}</button></>}>
-      <p style={{ marginBottom: 14 }}><b>{a.p.name}</b> · Lot <span className="mono">{a.l.lotNo}</span> · หมดอายุ {thDate(a.l.exp)} · ในระบบ {a.l.qty} {a.p.unit}</p>
-      <div className="form-grid">
-        {adjust && <Field label={`จำนวนที่นับได้จริง (${a.p.unit})`} hint={`ส่วนต่าง ${(parseInt(a.count) || 0) - a.l.qty}`}><input inputMode="numeric" value={a.count} onChange={(e) => setA({ ...a, count: e.target.value })} autoFocus /></Field>}
-        <Field label="เหตุผล" className={adjust ? '' : 'span2'}><input value={a.reason} onChange={(e) => setA({ ...a, reason: e.target.value })} autoFocus={!adjust} /></Field>
-      </div>
-      {!adjust && <div className="alert danger" style={{ marginTop: 14 }}>จะนำ {a.l.qty} {a.p.unit} ออกจากสต็อกทั้งหมด และบันทึกในประวัติความเคลื่อนไหว</div>}
+    <Modal title={adjust ? 'ตรวจนับ / ปรับยอด Lot' : 'ตัดสต็อก Lot'} onClose={onClose}
+      footer={<><button className="btn" onClick={onClose}>ยกเลิก</button><button className={'btn ' + (adjust ? 'primary' : 'danger')} onClick={save}>{adjust ? 'บันทึกยอด' : 'ยืนยันตัดสต็อก'}</button></>}>
+      <p style={{ marginBottom: 6 }}><b>{a.p.name}</b> · Lot <span className="mono">{a.l.lotNo}</span> <Badge cls={ls.cls}>{ls.label}</Badge></p>
+      <p className="muted small" style={{ marginBottom: 14 }}>หมดอายุ {thDate(a.l.exp)} · {cutLabel(ls)}<br />ทั้งหมด {ln.received} · ขายแล้ว {ln.sold}{ln.removed ? ` · ตัด/ปรับ ${ln.removed}` : ''} · คงเหลือ {a.l.qty} · ขายได้ {ls.sellQty} {a.p.unit}</p>
+      {adjust ? (
+        <div className="form-grid">
+          <Field label={`จำนวนที่นับได้จริง (${a.p.unit})`} hint={`ส่วนต่าง ${(parseInt(a.count) || 0) - a.l.qty}`}><input inputMode="numeric" value={a.count} onChange={set('count')} autoFocus /></Field>
+          <Field label="เหตุผล"><input value={a.reason} onChange={set('reason')} /></Field>
+          <Field label="รายละเอียด" className="span2"><textarea value={a.detail} onChange={set('detail')} maxLength={500} placeholder="เช่น ผู้ตรวจนับ, สาเหตุของส่วนต่าง" /></Field>
+        </div>
+      ) : (
+        <>
+          <div className="form-grid">
+            <Field label="สาเหตุ *"><select value={a.reason} onChange={set('reason')}><option value="">เลือกสาเหตุ</option>{WRITE_OFF_REASONS.map((r) => <option key={r}>{r}</option>)}</select></Field>
+            <Field label={`จำนวนที่ตัด (${a.p.unit}) *`} hint={`คงเหลือหลังตัด ${left} ${a.p.unit}`}>
+              <input inputMode="numeric" value={a.qty} onChange={(e) => setA({ ...a, qty: e.target.value.replace(/\D/g, '') })} />
+            </Field>
+            <Field label="เลขที่เอกสารอ้างอิง" hint="เช่น ใบทำลายยา ใบส่งคืน"><input value={a.ref} onChange={set('ref')} maxLength={100} /></Field>
+            <Field label="รายละเอียด *" className="span2"><textarea value={a.detail} onChange={set('detail')} maxLength={500} autoFocus placeholder="เช่น วิธีทำลาย, วันที่ส่งคืน, ผู้รับคืน, พยาน, สภาพของยา" /></Field>
+          </div>
+          <div className="alert danger" style={{ marginTop: 14 }}>จะตัด {cut} {a.p.unit} ออกจาก Lot นี้ เหลือ {left} {a.p.unit} และบันทึกรายละเอียดในประวัติความเคลื่อนไหวสต็อก</div>
+        </>
+      )}
     </Modal>
   )
 }

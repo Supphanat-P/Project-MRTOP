@@ -130,8 +130,10 @@ CREATE TABLE IF NOT EXISTS stock_moves (
   lot_no      VARCHAR(200),
   exp         DATE NULL,
   qty         INT NOT NULL,
+  balance     INT NULL,
   ref         VARCHAR(100),
   note        VARCHAR(300),
+  detail      VARCHAR(500),
   staff_id    VARCHAR(20) NULL,
   KEY ix_move_at (at),
   KEY ix_move_product (product_id)
@@ -139,9 +141,9 @@ CREATE TABLE IF NOT EXISTS stock_moves (
 
 CREATE OR REPLACE VIEW v_stock AS
 SELECT p.id, p.barcode, p.name, p.category, p.unit, p.min_stock,
-       COALESCE(SUM(CASE WHEN l.exp >= CURDATE() THEN l.qty END), 0) AS stock_ok,
-       COALESCE(SUM(CASE WHEN l.exp <  CURDATE() THEN l.qty END), 0) AS stock_expired,
-       MIN(CASE WHEN l.exp >= CURDATE() AND l.qty > 0 THEN l.exp END) AS next_exp
+       COALESCE(SUM(CASE WHEN DATE_SUB(l.exp, INTERVAL 6 MONTH) > CURDATE() THEN l.qty END), 0) AS stock_ok,
+       COALESCE(SUM(CASE WHEN DATE_SUB(l.exp, INTERVAL 6 MONTH) <= CURDATE() THEN l.qty END), 0) AS stock_expired,
+       MIN(CASE WHEN DATE_SUB(l.exp, INTERVAL 6 MONTH) > CURDATE() AND l.qty > 0 THEN l.exp END) AS next_exp
 FROM products p LEFT JOIN product_lots l ON l.product_id = p.id
 WHERE p.active = 1
 GROUP BY p.id;

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useStore } from '../store.jsx'
-import { baht, daysUntil, expiredQty, licenseStatus, localDay, num, stockOf, thDate, today } from '../utils.js'
+import { baht, expiredQty, licenseStatus, lotStatus, localDay, num, stockOf, thDate, today } from '../utils.js'
 import { Badge, PageHead, Stat } from '../components/ui.jsx'
 
 export default function Dashboard({ go }) {
@@ -16,7 +16,7 @@ export default function Dashboard({ go }) {
     })
     const profit = todays.reduce((s, r) => s + r.items.reduce((a, it) => a + (it.price - it.cost) * it.qty, 0) - r.discount, 0)
     const low = state.products.filter((p) => stockOf(p) <= p.minStock)
-    const expiring = state.products.flatMap((p) => p.lots.map((l) => ({ p, l, n: daysUntil(l.exp) }))).filter((x) => x.n <= 90).sort((a, b) => a.n - b.n)
+    const expiring = state.products.flatMap((p) => p.lots.map((l) => ({ p, l, st: lotStatus(l) }))).filter((x) => x.st.key !== 'ok').sort((a, b) => a.st.days - b.st.days)
     const lic = state.staff.filter((s) => s.license && licenseStatus(s.license).key !== 'ok')
     const top = {}
     for (const r of valid) for (const it of r.items) top[it.name] = (top[it.name] || 0) + it.qty
@@ -69,9 +69,9 @@ export default function Dashboard({ go }) {
                 ใบอนุญาตของ <b>{s.title} {s.name}</b> ({s.license.no}) - {licenseStatus(s.license).label}
               </div>
             ))}
-            {d.expiring.slice(0, 6).map(({ p, l, n }) => (
-              <div key={p.id + l.lotNo + l.exp} className={'alert ' + (n < 0 ? 'danger' : 'warn')}>
-                {p.name} Lot {l.lotNo} ({l.qty} {p.unit}) - {n < 0 ? `หมดอายุแล้ว ${-n} วัน` : `หมดอายุใน ${n} วัน`}
+            {d.expiring.slice(0, 6).map(({ p, l, st }) => (
+              <div key={p.id + l.lotNo + l.exp} className={'alert ' + st.cls}>
+                {p.name} Lot {l.lotNo} ({l.qty} {p.unit}) - {st.key === 'expired' ? `หมดอายุ ห้ามขาย · ${st.note.replace(' ห้ามขาย', '')} · ควรตัดสต็อก` : `${st.label} · ${st.note}`}
               </div>
             ))}
             {d.low.slice(0, 6).map((p) => (
