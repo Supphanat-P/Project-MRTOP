@@ -65,7 +65,7 @@ function MemberPicker({ customer, onPick }) {
               />
             </div>
             <button className="btn sm" onClick={() => setForm(blankMember(q))}>
-              ＋ สมัครสมาชิก
+              + สมัครสมาชิก
             </button>
           </div>
           {q.trim() && (
@@ -82,9 +82,7 @@ function MemberPicker({ customer, onPick }) {
                   {c.allergies && <Badge cls="danger">แพ้ยา</Badge>}
                 </button>
               ))}
-              {!hits.length && (
-                <div className="empty small">ไม่พบสมาชิก</div>
-              )}
+              {!hits.length && <div className="empty small">ไม่พบสมาชิก</div>}
             </div>
           )}
           {!q.trim() && (
@@ -192,7 +190,10 @@ export default function POS() {
       }
     }
     if (needRx && (!rxNo.trim() || !prescriber.trim()))
-      return notify("ยาควบคุมพิเศษต้องระบุเลขใบสั่งยาและชื่อแพทย์ในกล่องรายการยา", "danger");
+      return notify(
+        "ยาควบคุมพิเศษต้องระบุเลขใบสั่งยาและชื่อแพทย์ในกล่องรายการยา",
+        "danger",
+      );
     if (payment === "cash" && change < 0)
       return notify("รับเงินไม่พอ", "danger");
     const res = await act("checkout", {
@@ -320,6 +321,16 @@ export default function POS() {
                 if (isControlled) {
                   return (
                     <div className="cart-controlled-card" key={l.productId}>
+                      <button
+                        style={{
+                          display: "flex",
+                          justifySelf: "end",
+                          alignItems: "end",
+                        }}
+                        onClick={() => setQty(l.productId, 0)}
+                      >
+                        X
+                      </button>
                       <div className="cart-line-main">
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="nm">{l.p.name}</div>
@@ -335,11 +346,13 @@ export default function POS() {
                             onClick={() => setQty(l.productId, l.qty - 1)}
                             aria-label="ลด"
                           >
-                            −
+                            -
                           </button>
                           <input
                             value={l.qty}
-                            onChange={(e) => setQty(l.productId, e.target.value)}
+                            onChange={(e) =>
+                              setQty(l.productId, e.target.value)
+                            }
                             aria-label="จำนวน"
                           />
                           <button onClick={() => add(l.p)} aria-label="เพิ่ม">
@@ -351,7 +364,17 @@ export default function POS() {
 
                       <div className="cart-rx-section">
                         <div className="cart-rx-header">
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-1px" }}>
+                          <svg
+                            width="13"
+                            height="13"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{ verticalAlign: "-1px" }}
+                          >
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
                             <line x1="16" y1="13" x2="8" y2="13" />
@@ -398,7 +421,7 @@ export default function POS() {
                         onClick={() => setQty(l.productId, l.qty - 1)}
                         aria-label="ลด"
                       >
-                        −
+                        -
                       </button>
                       <input
                         value={l.qty}
@@ -409,7 +432,15 @@ export default function POS() {
                         +
                       </button>
                     </div>
-                    <b className="nowrap">{baht(l.p.price * l.qty)}</b>
+                    <div>
+                      <b className="nowrap">{baht(l.p.price * l.qty)}</b>
+                      <button
+                        style={{ paddingLeft: "5px" }}
+                        onClick={() => setQty(l.productId, 0)}
+                      >
+                        X
+                      </button>
+                    </div>
                   </div>
                 );
               })}
@@ -424,7 +455,17 @@ export default function POS() {
               </div>
               <div className="pharmacist-input-readonly">
                 <span className="ph-lock-icon">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: "-1px" }}>
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ verticalAlign: "-1px" }}
+                  >
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
