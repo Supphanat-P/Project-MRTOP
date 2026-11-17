@@ -2,7 +2,7 @@ import express from 'express'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { fromDT, hashPin, HttpError, isSellable, licenseExpiry, localDate, newId, pool, toDT, tx, verifyPin } from './db.js'
+import { fromDT, hashPin, HttpError, isSellable, licenseExpiry, localDate, newId, pool, toDT, tx, validatePassword, verifyPin } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const app = express()
@@ -58,12 +58,51 @@ app.get('/api/public/staff', wrap(async (_req, res) => {
 }))
 
 app.post('/api/login', wrap(async (req, res) => {
-  const { staffId, pin } = req.body || {}
+  const { staffId, pin, password } = req.body || {}
+  const pass = password ?? pin
+  if (!staffId || !pass) throw new HttpError(400, 'กรุณากรอกรหัสผ่าน')
   const [[s]] = await pool.query('SELECT * FROM staff WHERE id = ? AND active = 1', [staffId])
-  if (!s || !verifyPin(pin, s.pin_hash)) throw new HttpError(401, 'PIN ไม่ถูกต้อง')
+  if (!s || !verifyPin(pass, s.pin_hash)) throw new HttpError(401, 'รหัสผ่านไม่ถูกต้อง')
   const token = crypto.randomBytes(24).toString('hex')
   sessions.set(token, { staffId: s.id, role: s.role, exp: Date.now() + SESSION_MS })
   res.json({ token, staff: mapStaff(s) })
+}))
+
+app.post('/api/register', wrap(async (req, res) => {
+  const s = req.body || {}
+  if (!s.name?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อ-สกุล')
+  const pass = s.password ?? s.pin
+  if (!pass) throw new HttpError(400, 'กรุณาตั้งรหัสผ่าน')
+  const err = validatePassword(pass)
+  if (err) throw new HttpError(400, err)
+
+  const [[{ count }]] = await pool.query('SELECT COUNT(*) AS count FROM staff WHERE active = 1')
+  const role = count === 0 ? 'admin' : (ROLES.includes(s.role) ? s.role : 'pharmacist')
+  const title = s.title?.trim() || 'ภก.'
+  const l = s.license?.no?.trim() ? s.license : null
+  if (role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันออกใบอนุญาต')
+  if (l && !/^\d{4}-\d{2}-\d{2}$/.test(l.issued || '')) throw new HttpError(400, 'กรุณาระบุวันออกใบอนุญาต')
+  if (l && l.issued > localDate()) throw new HttpError(400, 'วันออกใบอนุญาตต้องไม่เกินวันนี้')
+
+  const id = newId()
+  const color = s.color || '#1A7A6E'
+  const lic = [l?.no?.trim() || null, l?.type || 'ใบอนุญาตประกอบวิชาชีพเภสัชกรรม', l?.issued || null, licenseExpiry(l?.issued), l?.university || null, l?.degree || null]
+
+  try {
+    await pool.query(
+      `INSERT INTO staff (id, title, name, role, pin_hash, color, lic_no, lic_type, lic_issued, lic_expires, lic_university, lic_degree)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, title, s.name.trim(), role, hashPin(pass), color, ...lic],
+    )
+  } catch (e) {
+    if (e.code === 'ER_DUP_ENTRY') throw new HttpError(409, 'เลขที่ใบอนุญาตนี้มีในระบบแล้ว')
+    throw e
+  }
+
+  const token = crypto.randomBytes(24).toString('hex')
+  sessions.set(token, { staffId: id, role, exp: Date.now() + SESSION_MS })
+  const [[created]] = await pool.query('SELECT * FROM staff WHERE id = ?', [id])
+  res.json({ token, staff: mapStaff(created) })
 }))
 
 app.use('/api', auth)
@@ -328,27 +367,31 @@ app.put('/api/staff/:id', role('admin'), wrap(async (req, res) => {
   if (!okId(id)) throw new HttpError(400, 'รหัสพนักงานไม่ถูกต้อง')
   if (!s.name?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อ')
   if (!ROLES.includes(s.role)) throw new HttpError(400, 'บทบาทไม่ถูกต้อง')
-  if (s.pin && !/^\d{4}$/.test(s.pin)) throw new HttpError(400, 'PIN ต้องเป็นตัวเลข 4 หลัก')
+  const pass = s.password ?? s.pin
+  if (pass) {
+    const err = validatePassword(pass)
+    if (err) throw new HttpError(400, err)
+  }
   const l = s.license?.no?.trim() ? s.license : null
   if (s.role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันออกใบอนุญาต')
   if (l && !/^\d{4}-\d{2}-\d{2}$/.test(l.issued || '')) throw new HttpError(400, 'กรุณาระบุวันออกใบอนุญาต')
   if (l && l.issued > localDate()) throw new HttpError(400, 'วันออกใบอนุญาตต้องไม่เกินวันนี้')
   if (id === req.user.staffId && s.role !== 'admin') throw new HttpError(400, 'เปลี่ยนบทบาทของตัวเองไม่ได้')
   const [[exist]] = await pool.query('SELECT id FROM staff WHERE id = ?', [id])
-  if (!exist && !s.pin) throw new HttpError(400, 'พนักงานใหม่ต้องตั้ง PIN')
+  if (!exist && !pass) throw new HttpError(400, 'พนักงานใหม่ต้องตั้งรหัสผ่าน')
   const lic = [l?.no?.trim() || null, l?.type || null, l?.issued || null, licenseExpiry(l?.issued), l?.university || null, l?.degree || null]
   try {
     if (exist) {
       await pool.query(
         `UPDATE staff SET title=?, name=?, role=?, color=?, lic_no=?, lic_type=?, lic_issued=?, lic_expires=?, lic_university=?, lic_degree=?, active=1
-         ${s.pin ? ', pin_hash=?' : ''} WHERE id=?`,
-        [s.title, s.name.trim(), s.role, s.color, ...lic, ...(s.pin ? [hashPin(s.pin)] : []), id],
+         ${pass ? ', pin_hash=?' : ''} WHERE id=?`,
+        [s.title, s.name.trim(), s.role, s.color, ...lic, ...(pass ? [hashPin(pass)] : []), id],
       )
     } else {
       await pool.query(
         `INSERT INTO staff (id, title, name, role, pin_hash, color, lic_no, lic_type, lic_issued, lic_expires, lic_university, lic_degree)
          VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-        [id, s.title, s.name.trim(), s.role, hashPin(s.pin), s.color, ...lic],
+        [id, s.title, s.name.trim(), s.role, hashPin(pass), s.color, ...lic],
       )
     }
   } catch (e) {

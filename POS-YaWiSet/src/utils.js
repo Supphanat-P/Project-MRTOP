@@ -169,12 +169,40 @@ export const licenseStatus = (lic) => {
 
 export const downloadCSV = (filename, rows) => {
   const csv = rows.map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n')
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
   const a = document.createElement('a')
   a.href = URL.createObjectURL(blob)
   a.download = filename
   a.click()
   URL.revokeObjectURL(a.href)
 }
+
+export const checkPasswordCriteria = (pwd) => {
+  const p = pwd || ''
+  return {
+    length: p.length >= 8,
+    lower: /[a-z]/.test(p),
+    upper: /[A-Z]/.test(p),
+    digit: /\d/.test(p),
+    special: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(p),
+  }
+}
+
+export const isPasswordValid = (pwd) => {
+  const c = checkPasswordCriteria(pwd)
+  return c.length && c.lower && c.upper && c.digit && c.special
+}
+
+export const getPasswordError = (pwd) => {
+  if (!pwd) return 'กรุณากรอกรหัสผ่าน'
+  const c = checkPasswordCriteria(pwd)
+  if (!c.length) return 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร'
+  if (!c.lower) return 'รหัสผ่านต้องมีตัวอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว'
+  if (!c.upper) return 'รหัสผ่านต้องมีตัวอักษรพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว'
+  if (!c.digit) return 'รหัสผ่านต้องมีตัวเลข (0-9) อย่างน้อย 1 ตัว'
+  if (!c.special) return 'รหัสผ่านต้องมีตัวอักษรพิเศษ (!@#$%^&*...) อย่างน้อย 1 ตัว'
+  return null
+}
+
 
 

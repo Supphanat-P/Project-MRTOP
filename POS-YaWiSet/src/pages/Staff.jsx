@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { isLifetime, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, uid } from '../utils.js'
-import { Avatar, Badge, Field, Modal, PageHead, Stat } from '../components/ui.jsx'
+import { getPasswordError, isLifetime, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, uid } from '../utils.js'
+import { Avatar, Badge, Field, Modal, PageHead, PasswordCriteriaView, PasswordInput, Stat } from '../components/ui.jsx'
 import LicenseDoc from '../components/LicenseDoc.jsx'
 import ThaiDateInput from '../components/ThaiDateInput.jsx'
 import PrintButtons from '../components/PrintButtons.jsx'
@@ -68,7 +68,7 @@ export default function Staff() {
       <div className="card" style={{ marginTop: 20 }}>
         <h3>สิทธิ์ตามบทบาท</h3>
         <div className="grid two" style={{ gap: 14 }}>
-          <div className="alert"><b>แอดมิน (Admin)</b><br />ทุกเมนู · จัดการผู้ใช้ (เพิ่ม/แก้ไข/ลบ/ตั้ง PIN) · รีเซ็ตข้อมูล</div>
+          <div className="alert"><b>แอดมิน (Admin)</b><br />ทุกเมนู · จัดการผู้ใช้ (เพิ่ม/แก้ไข/ลบ/ตั้งรหัสผ่าน) · รีเซ็ตข้อมูล</div>
           <div className="alert"><b>เภสัชกร (Pharmacist)</b><br />ขายและจ่ายยา · จัดการคลังยา · ยกเลิกบิล · ข้อมูลร้านและลูกค้า · ทุกอย่างยกเว้นจัดการผู้ใช้</div>
         </div>
       </div>
@@ -96,7 +96,10 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
   const setIssued = (v) => setS({ ...s, license: { ...s.license, issued: v, expires: licenseExpiry(v) } })
   const save = () => {
     if (!s.name.trim()) return alert('กรุณากรอกชื่อ')
-    if ((!s.id || s.pin) && !/^\d{4}$/.test(s.pin || '')) return alert('PIN ต้องเป็นตัวเลข 4 หลัก')
+    if (!s.id || s.pin) {
+      const err = getPasswordError(s.pin)
+      if (err) return alert(err)
+    }
     if (isPh && (!s.license.no.trim() || !s.license.issued)) return alert('ต้องกรอกเลขที่ใบอนุญาตและวันออกใบอนุญาต')
     if (isPh && s.license.issued > today()) return alert('วันออกใบอนุญาตต้องไม่เกินวันนี้')
     onSave({ ...s, id: s.id || uid(), license: isPh ? s.license : null })
@@ -110,9 +113,14 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
         <Field label="บทบาท" hint={isSelf ? 'เปลี่ยนบทบาทของตัวเองไม่ได้' : ''}>
           <select value={s.role} disabled={isSelf} onChange={set('role')}>{Object.entries(ROLE_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
         </Field>
-        <Field label={s.id ? 'PIN ใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'PIN เข้าระบบ 4 หลัก *'}>
-          <input type="password" inputMode="numeric" maxLength={4} value={s.pin || ''} onChange={(e) => setS({ ...s, pin: e.target.value.replace(/\D/g, '') })} />
+        <Field label={s.id ? 'รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)' : 'รหัสผ่านเข้าระบบ *'} hint={s.id ? '' : 'ตัวพิมพ์เล็ก, ใหญ่, ตัวเลข, อักขระพิเศษ'}>
+          <PasswordInput value={s.pin || ''} onChange={(e) => setS({ ...s, pin: e.target.value })} placeholder={s.id ? 'เว้นว่างหากไม่เปลี่ยน' : 'เช่น Pass@1234'} />
         </Field>
+        {(!s.id || s.pin) && (
+          <div className="span2">
+            <PasswordCriteriaView password={s.pin || ''} />
+          </div>
+        )}
         <Field label="สีประจำตัว" className="span2">
           <div className="row">{COLORS.map((c) => (
             <button key={c} type="button" aria-label={c} onClick={() => setS({ ...s, color: c })}

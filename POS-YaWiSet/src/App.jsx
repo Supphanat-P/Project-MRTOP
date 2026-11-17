@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from './api.js'
 import { StoreProvider, useStore } from './store.jsx'
 import { licenseStatus, ROLE_LABEL } from './utils.js'
-import { Avatar } from './components/ui.jsx'
+import { Avatar, PasswordInput } from './components/ui.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import POS from './pages/POS.jsx'
 import Inventory from './pages/Inventory.jsx'
@@ -26,7 +26,7 @@ function Login() {
   const [staff, setStaff] = useState(null)
   const [loadErr, setLoadErr] = useState('')
   const [sel, setSel] = useState(null)
-  const [pin, setPin] = useState('')
+  const [password, setPassword] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -38,11 +38,10 @@ function Login() {
 
   const submit = async (e) => {
     e?.preventDefault()
-    if (pin.length !== 4) return setErr('กรอก PIN 4 หลัก')
+    if (!password) return setErr('กรุณากรอกรหัสผ่าน')
     setBusy(true); setErr('')
-    try { await login(sel.id, pin) } catch (ex) { setErr(ex.message); setPin('') } finally { setBusy(false) }
+    try { await login(sel.id, password) } catch (ex) { setErr(ex.message); setPassword('') } finally { setBusy(false) }
   }
-  const press = (k) => setPin((p) => (k === '⌫' ? p.slice(0, -1) : k === 'C' ? '' : (p + k).slice(0, 4)))
 
   return (
     <div className="login">
@@ -67,14 +66,14 @@ function Login() {
               <h3>เลือกผู้ใช้งาน</h3>
               <div className="user-list">
                 {staff.map((s) => (
-                  <button key={s.id} className="user-btn" onClick={() => { setSel(s); setErr(''); setPin('') }}>
+                  <button key={s.id} className="user-btn" onClick={() => { setSel(s); setErr(''); setPassword('') }}>
                     <Avatar staff={s} />
                     <span><b>{s.title} {s.name}</b><br /><small className="muted">{ROLE_LABEL[s.role]}{s.licenseNo ? ` · ${s.licenseNo}` : ''}</small></span>
                   </button>
                 ))}
                 {!staff.length && <div className="alert warn">ยังไม่มีพนักงานในระบบ - รัน <code>npm run db:init</code></div>}
               </div>
-              <p className="muted small" style={{ marginTop: 14 }}>ข้อมูลตัวอย่าง: PIN 1111 เจ้าของร้าน · 2222 เภสัชกร</p>
+              <p className="muted small" style={{ marginTop: 14 }}>ข้อมูลตัวอย่าง: รหัสผ่าน Admin@1234 เจ้าของร้าน · Pharm@2222 เภสัชกร</p>
             </>
           ) : (
             <form onSubmit={submit}>
@@ -82,14 +81,18 @@ function Login() {
                 <Avatar staff={sel} size={44} />
                 <div><b>{sel.title} {sel.name}</b><br /><small className="muted">{ROLE_LABEL[sel.role]}</small></div>
               </div>
-              <input className="pin-input" type="password" inputMode="numeric" maxLength={4} autoFocus value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} aria-label="PIN" />
-              <div className="keypad">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'C', '0', '⌫'].map((k) => <button type="button" key={k} onClick={() => press(k)}>{k}</button>)}
+              <div style={{ margin: '16px 0' }}>
+                <PasswordInput
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="กรอกรหัสผ่าน"
+                  ariaLabel="รหัสผ่าน"
+                />
               </div>
               {err && <div className="alert danger" style={{ marginBottom: 12 }}>{err}</div>}
               <div className="row">
-                <button type="button" className="btn" onClick={() => setSel(null)}>← ย้อนกลับ</button>
+                <button type="button" className="btn" onClick={() => { setSel(null); setPassword(''); setErr('') }}>← ย้อนกลับ</button>
                 <button className="btn primary" style={{ flex: 1 }} disabled={busy}>{busy ? 'กำลังตรวจสอบ...' : 'เข้าสู่ระบบ'}</button>
               </div>
             </form>
