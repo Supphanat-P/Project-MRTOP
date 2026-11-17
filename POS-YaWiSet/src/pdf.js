@@ -80,6 +80,7 @@ export function receiptDoc(r, state) {
       row('รวม', baht(r.subtotal)),
       r.discount > 0 ? row('ส่วนลด', `-${baht(r.discount)}`) : '',
       row('ยอดสุทธิ', baht(r.total), { bold: true, fontSize: 11 }),
+      { text: 'VAT Included', alignment: 'right', fontSize: 7.5, color: MUTED, margin: [0, -1, 0, 1] },
       row(`ชำระโดย ${PAY_LABEL[r.payment]}`, baht(r.received)),
       r.payment === 'cash' ? row('เงินทอน', baht(r.change)) : '',
       line(inner),
