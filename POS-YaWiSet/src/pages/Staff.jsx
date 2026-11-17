@@ -17,6 +17,7 @@ export default function Staff() {
   const [edit, setEdit] = useState(null)
   const pharm = state.staff.filter((s) => s.license)
   const viewing = state.staff.find((s) => s.id === doc)
+  const remove = async (s) => confirm(`ลบ ${s.title} ${s.name} ออกจากระบบ?`) && await act('deleteStaff', s.id, 'ลบพนักงานแล้ว')
 
   const blank = () => ({ id: '', title: 'ภก.', name: '', role: 'pharmacist', pin: '', color: COLORS[state.staff.length % COLORS.length],
     license: { no: '', type: LIC_TYPE, issued: today(), expires: licenseExpiry(today()), university: '', degree: 'เภสัชศาสตรบัณฑิต' } })
@@ -57,6 +58,7 @@ export default function Staff() {
               <div className="row" style={{ marginTop: 16 }}>
                 {s.license && <button className="btn sm primary" onClick={() => setDoc(s.id)}>ใบประกอบวิชาชีพ</button>}
                 {isAdmin && <button className="btn sm" onClick={() => setEdit({ ...s, pin: '', license: s.license || blank().license })}>แก้ไข</button>}
+                {isAdmin && s.id !== me.id && <button className="btn sm danger" onClick={() => remove(s)}>ลบ</button>}
               </div>
             </div>
           )
@@ -80,7 +82,7 @@ export default function Staff() {
 
       {edit && <StaffForm initial={edit} isSelf={edit.id === me.id} onClose={() => setEdit(null)}
         onSave={async (s) => { if (await act('saveStaff', s, 'บันทึกพนักงานแล้ว')) setEdit(null) }}
-        onDelete={edit.id && edit.id !== me.id ? async () => { if (confirm(`ลบ ${edit.name} ออกจากระบบ?`) && await act('deleteStaff', edit.id, 'ลบพนักงานแล้ว')) setEdit(null) } : null} />}
+        onDelete={edit.id && edit.id !== me.id ? async () => { if (await remove(edit)) setEdit(null) } : null} />}
     </div>
   )
 }
