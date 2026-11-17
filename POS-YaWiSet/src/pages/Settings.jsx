@@ -8,7 +8,6 @@ export default function Settings() {
   const { state, act, me } = useStore()
   const isAdmin = me.role === 'admin'
   const [s, setS] = useState(state.settings)
-  const [c, setC] = useState({ id: '', name: '', phone: '', allergies: '' })
   const set = (k) => (e) => setS({ ...s, [k]: e.target.value })
 
   const exportJSON = () => {
@@ -23,7 +22,7 @@ export default function Settings() {
 
   return (
     <div className="page">
-      <PageHead label="Shop" title="ข้อมูล" em="ร้านค้า" sub="ข้อมูลบนใบเสร็จ ลูกค้าและประวัติแพ้ยา และการสำรองข้อมูล" />
+      <PageHead label="Shop" title="ข้อมูล" em="ร้านค้า" sub="ข้อมูลบนใบเสร็จ และการสำรองข้อมูล" />
 
       <div className="grid two">
         <div className="card">
@@ -46,29 +45,6 @@ export default function Settings() {
           <div className="window-bar"><i /><i /><i /><span className="title">ตัวอย่างใบเสร็จ</span></div>
           <div className="window-body" style={{ background: 'var(--surface)' }}>
             <ReceiptView receipt={{ ...sample }} />
-          </div>
-        </div>
-
-        <div className="card">
-          <h3>ลูกค้า / ประวัติแพ้ยา</h3>
-          <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto', marginBottom: 14 }}>
-            <table>
-              <thead><tr><th>ชื่อ</th><th>โทร</th><th>แพ้ยา</th><th></th></tr></thead>
-              <tbody>{state.customers.map((x) => (
-                <tr key={x.id}><td>{x.name}</td><td>{x.phone || '-'}</td><td style={{ color: x.allergies ? 'var(--danger)' : undefined }}>{x.allergies || '-'}</td>
-                  <td className="right"><button className="btn sm ghost" onClick={() => setC({ ...x, phone: x.phone || '', allergies: x.allergies || '' })}>แก้ไข</button></td></tr>
-              ))}</tbody>
-            </table>
-          </div>
-          <div className="form-grid">
-            <Field label={c.id ? 'แก้ไขชื่อลูกค้า' : 'ชื่อลูกค้าใหม่'}><input value={c.name} onChange={(e) => setC({ ...c, name: e.target.value })} /></Field>
-            <Field label="โทร"><input value={c.phone} onChange={(e) => setC({ ...c, phone: e.target.value })} /></Field>
-            <Field label="ประวัติแพ้ยา" className="span2"><input value={c.allergies} onChange={(e) => setC({ ...c, allergies: e.target.value })} placeholder="เช่น แพ้ Penicillin, Sulfa" /></Field>
-          </div>
-          <div className="row" style={{ marginTop: 14 }}>
-            <button className="btn primary" onClick={async () => { if (await act('saveCustomer', c, c.id ? 'แก้ไขลูกค้าแล้ว' : 'เพิ่มลูกค้าแล้ว')) setC({ id: '', name: '', phone: '', allergies: '' }) }}>
-              {c.id ? 'บันทึกการแก้ไข' : '＋ เพิ่มลูกค้า'}</button>
-            {c.id && <button className="btn" onClick={() => setC({ id: '', name: '', phone: '', allergies: '' })}>ยกเลิก</button>}
           </div>
         </div>
 

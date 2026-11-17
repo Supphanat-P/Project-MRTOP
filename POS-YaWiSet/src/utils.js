@@ -42,6 +42,32 @@ export const thDate = (s, withTime = false) => {
 }
 export const thDateLong = (s) => (s ? new Date(s + 'T00:00:00').toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '-')
 
+export const fmtPhone = (p) => {
+  const d = String(p || '').replace(/\D/g, '')
+  if (d.length === 10) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`
+  if (d.length === 9) return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`
+  return d
+}
+
+export const matchMember = (c, q) => {
+  const k = q.trim().toLowerCase()
+  if (!k || !c.memberNo) return false
+  const digits = k.replace(/[\s-]/g, '')
+  return c.name.toLowerCase().includes(k) || c.memberNo.toLowerCase().includes(k) ||
+    (/^\d+$/.test(digits) && c.phone.includes(digits))
+}
+
+export const blankMember = (prefill = '') => {
+  const digits = prefill.replace(/[\s-]/g, '')
+  const isPhone = /^\d+$/.test(digits)
+  return { id: '', name: isPhone ? '' : prefill.trim(), phone: isPhone ? digits : '', birthDate: '', allergies: '', note: '', consent: false }
+}
+
+export const memberStats = (receipts, id) => {
+  const rs = receipts.filter((r) => r.customerId === id && !r.voided)
+  return { visits: rs.length, total: rs.reduce((s, r) => s + r.total, 0), last: rs.at(-1)?.at }
+}
+
 export const stockOf = (p) => p.lots.reduce((s, l) => s + (daysUntil(l.exp) >= 0 ? l.qty : 0), 0)
 export const expiredQty = (p) => p.lots.reduce((s, l) => s + (daysUntil(l.exp) < 0 ? l.qty : 0), 0)
 export const nextExp = (p) => p.lots.filter((l) => daysUntil(l.exp) >= 0).map((l) => l.exp).sort()[0]

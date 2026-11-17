@@ -33,10 +33,16 @@ CREATE TABLE IF NOT EXISTS staff (
 
 CREATE TABLE IF NOT EXISTS customers (
   id         VARCHAR(20) PRIMARY KEY,
+  member_no  VARCHAR(20) NULL,
   name       VARCHAR(150) NOT NULL,
   phone      VARCHAR(30),
+  birth_date DATE NULL,
   allergies  VARCHAR(500),
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  note       VARCHAR(300),
+  consent_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_member_no (member_no),
+  KEY ix_customer_phone (phone)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS products (

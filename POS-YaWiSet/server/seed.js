@@ -38,10 +38,11 @@ export async function seedDatabase(conn) {
       [id, title, name, role, hashPin(pin), color, l?.[0] ?? null, l ? LIC_TYPE : null, l ? d(l[1]) : null, l ? d(l[2]) : null, l?.[3] ?? null, l?.[4] ?? null],
     )
   }
-  for (const c of [['c1', 'ลูกค้าทั่วไป', '', ''], ['c2', 'คุณวิภา สุขใจ', '081-000-0001', 'แพ้ Penicillin'], ['c3', 'คุณประเสริฐ มั่นคง', '081-000-0002', '']]) {
-    await conn.query('INSERT INTO customers (id, name, phone, allergies) VALUES (?,?,?,?)', c)
-  }
   const at = new Date().toISOString().slice(0, 19).replace('T', ' ')
+  await conn.query("INSERT INTO customers (id, name, created_at) VALUES ('c1', 'ลูกค้าทั่วไป', ?)", [at])
+  for (const c of [['c2', 'M00001', 'คุณวิภา สุขใจ', '0810000001', 'แพ้ Penicillin'], ['c3', 'M00002', 'คุณประเสริฐ มั่นคง', '0810000002', null]]) {
+    await conn.query('INSERT INTO customers (id, member_no, name, phone, allergies, consent_at, created_at) VALUES (?,?,?,?,?,?,?)', [...c, at, at])
+  }
   for (const [id, barcode, name, generic, category, unit, price, cost, min, dosage, lots] of products) {
     await conn.query(
       'INSERT INTO products (id, barcode, name, generic, category, unit, price, cost, min_stock, dosage) VALUES (?,?,?,?,?,?,?,?,?,?)',

@@ -111,7 +111,7 @@ function StaffForm({ initial, isSelf, onClose, onSave, onDelete }) {
         </Field>
       </div>
       {s.role === 'admin' && (
-        <label className="row small" style={{ marginTop: 14 }}>
+        <label className="check" style={{ marginTop: 14 }}>
           <input type="checkbox" checked={ownerLic} onChange={(e) => setOwnerLic(e.target.checked)} />
           เจ้าของร้านเป็นเภสัชกรด้วย (มีใบประกอบวิชาชีพ)
         </label>

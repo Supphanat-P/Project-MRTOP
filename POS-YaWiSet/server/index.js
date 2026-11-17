@@ -69,7 +69,7 @@ app.post('/api/logout', (req, res) => { sessions.delete(req.token); res.json({ o
 app.get('/api/bootstrap', wrap(async (_req, res) => {
   const [[settings]] = await pool.query('SELECT * FROM shop_settings WHERE id = 1')
   const [staff] = await pool.query('SELECT * FROM staff WHERE active = 1 ORDER BY created_at, id')
-  const [customers] = await pool.query('SELECT id, name, phone, allergies FROM customers ORDER BY created_at, id')
+  const [customers] = await pool.query('SELECT * FROM customers ORDER BY created_at, id')
   const [products] = await pool.query('SELECT * FROM products WHERE active = 1 ORDER BY name')
   const [lots] = await pool.query('SELECT product_id, lot_no, exp, qty FROM product_lots WHERE qty > 0 ORDER BY exp')
   const [receipts] = await pool.query('SELECT * FROM receipts ORDER BY at')
@@ -89,7 +89,10 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
   res.json({
     settings: mapSettings(settings),
     staff: staff.map(mapStaff),
-    customers,
+    customers: customers.map((c) => ({
+      id: c.id, memberNo: c.member_no, name: c.name, phone: c.phone || '', birthDate: c.birth_date, allergies: c.allergies || '',
+      note: c.note || '', consentAt: fromDT(c.consent_at), createdAt: fromDT(c.created_at),
+    })),
     products: products.map((p) => ({
       id: p.id, barcode: p.barcode, name: p.name, generic: p.generic || '', category: p.category, unit: p.unit,
       price: p.price, cost: p.cost, minStock: p.min_stock, dosage: p.dosage || '', lots: lotsBy[p.id] || [],
@@ -335,13 +338,36 @@ app.delete('/api/staff/:id', role('admin'), wrap(async (req, res) => {
 
 app.post('/api/customers', wrap(async (req, res) => {
   const c = req.body || {}
-  if (!c.name?.trim()) throw new HttpError(400, 'กรุณาระบุชื่อลูกค้า')
-  const id = okId(c.id) ? c.id : newId()
-  await pool.query(
-    'INSERT INTO customers (id, name, phone, allergies) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name), phone=VALUES(phone), allergies=VALUES(allergies)',
-    [id, c.name.trim(), c.phone || null, c.allergies || null],
-  )
-  res.json({ ok: true, id })
+  const name = c.name?.trim()
+  const phone = String(c.phone || '').replace(/\D/g, '')
+  if (!name) throw new HttpError(400, 'กรุณาระบุชื่อสมาชิก')
+  if (!/^0\d{8,9}$/.test(phone)) throw new HttpError(400, 'เบอร์โทรต้องเป็นตัวเลข 9-10 หลัก ขึ้นต้นด้วย 0')
+  if (c.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(c.birthDate)) throw new HttpError(400, 'วันเกิดไม่ถูกต้อง')
+
+  const result = await tx(async (conn) => {
+    const [[exist]] = c.id ? await conn.query('SELECT * FROM customers WHERE id = ? FOR UPDATE', [c.id]) : [[null]]
+    if (c.id && !exist) throw new HttpError(404, 'ไม่พบสมาชิก')
+    if (exist && !exist.member_no) throw new HttpError(400, 'ลูกค้าทั่วไปแก้ไขไม่ได้')
+    if (!exist && !c.consent) throw new HttpError(400, 'สมาชิกใหม่ต้องยินยอมให้เก็บข้อมูลส่วนบุคคลก่อน')
+
+    const [[dup]] = await conn.query('SELECT name, member_no FROM customers WHERE phone = ? AND id <> ? LIMIT 1', [phone, exist?.id || ''])
+    if (dup) throw new HttpError(409, `เบอร์นี้เป็นสมาชิกอยู่แล้ว: ${dup.name} (${dup.member_no})`)
+
+    const fields = [name, phone, c.birthDate || null, c.allergies?.trim() || null, c.note?.trim() || null]
+    if (exist) {
+      await conn.query('UPDATE customers SET name=?, phone=?, birth_date=?, allergies=?, note=? WHERE id=?', [...fields, exist.id])
+      return { id: exist.id, memberNo: exist.member_no }
+    }
+    const [[{ last }]] = await conn.query("SELECT MAX(CAST(SUBSTRING(member_no, 2) AS UNSIGNED)) AS last FROM customers WHERE member_no LIKE 'M%' FOR UPDATE")
+    const memberNo = 'M' + String((last || 0) + 1).padStart(5, '0')
+    const id = newId()
+    await conn.query(
+      'INSERT INTO customers (id, member_no, name, phone, birth_date, allergies, note, consent_at, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+      [id, memberNo, ...fields, toDT(), toDT()],
+    )
+    return { id, memberNo }
+  })
+  res.json({ ok: true, ...result })
 }))
 
 app.post('/api/admin/reset', role('admin'), wrap(async (_req, res) => {

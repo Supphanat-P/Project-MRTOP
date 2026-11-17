@@ -18,6 +18,22 @@ try {
     await conn.query("ALTER TABLE staff MODIFY role ENUM('admin','pharmacist') NOT NULL")
     console.log(`ปรับบทบาทเหลือ 2 แบบแล้ว (ย้ายพนักงานขาย ${r.affectedRows} คนเป็นเภสัชกร)`)
   }
+  const [cols] = await conn.query("SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'customers'", [DB_NAME])
+  if (!cols.some((x) => x.c === 'member_no')) {
+    await conn.query(`ALTER TABLE customers
+      ADD COLUMN member_no VARCHAR(20) NULL AFTER id,
+      ADD COLUMN birth_date DATE NULL AFTER phone,
+      ADD COLUMN note VARCHAR(300) NULL AFTER allergies,
+      ADD COLUMN consent_at DATETIME NULL AFTER note,
+      ADD UNIQUE KEY uq_member_no (member_no),
+      ADD KEY ix_customer_phone (phone)`)
+    await conn.query("UPDATE customers SET phone = NULLIF(REGEXP_REPLACE(phone, '[^0-9]', ''), '')")
+    const [old] = await conn.query("SELECT id FROM customers WHERE id <> 'c1' ORDER BY created_at, id")
+    for (const [i, c] of old.entries()) {
+      await conn.query('UPDATE customers SET member_no = ? WHERE id = ?', ['M' + String(i + 1).padStart(5, '0'), c.id])
+    }
+    console.log(`เพิ่มระบบสมาชิกแล้ว (ให้รหัสสมาชิกกับลูกค้าเดิม ${old.length} คน)`)
+  }
   const [[{ n }]] = await conn.query('SELECT COUNT(*) AS n FROM staff')
   if (n > 0 && !reset) {
     console.log('มีข้อมูลอยู่แล้ว - ข้ามการใส่ข้อมูลตัวอย่าง (ใช้ npm run db:reset เพื่อล้างแล้วใส่ใหม่)')

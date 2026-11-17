@@ -16,7 +16,7 @@ export default function ReceiptView({ receipt: r }) {
       <hr />
       <div className="c b">ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ</div>
       <div className="ln"><span>เลขที่ {r.no}</span><span>{thDate(r.at, true)}</span></div>
-      <div>ลูกค้า: {cust?.name || 'ลูกค้าทั่วไป'}</div>
+      <div>ลูกค้า: {cust?.name || 'ลูกค้าทั่วไป'}{cust?.memberNo ? ` (สมาชิก ${cust.memberNo})` : ''}</div>
       {r.rxNo && <div>ใบสั่งยา {r.rxNo} · {r.prescriber}</div>}
       {r.voided && <div className="void-stamp">ยกเลิกแล้ว - {r.voidReason}</div>}
       <hr />

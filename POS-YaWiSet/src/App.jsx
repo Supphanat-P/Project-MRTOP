@@ -8,12 +8,14 @@ import POS from './pages/POS.jsx'
 import Inventory from './pages/Inventory.jsx'
 import Receipts from './pages/Receipts.jsx'
 import Staff from './pages/Staff.jsx'
+import Members from './pages/Members.jsx'
 import Settings from './pages/Settings.jsx'
 
 const NAV = [
   { key: 'dashboard', label: 'ภาพรวม', el: Dashboard },
   { key: 'pos', label: 'ขายหน้าร้าน', el: POS },
   { key: 'inventory', label: 'คลังยา & สต็อก', el: Inventory },
+  { key: 'members', label: 'สมาชิก', el: Members },
   { key: 'receipts', label: 'ใบเสร็จ', el: Receipts },
   { key: 'staff', label: 'เภสัชกร / พนักงาน', el: Staff },
   { key: 'settings', label: 'ร้านค้า', el: Settings },
