@@ -60,10 +60,41 @@ export default function Inventory() {
 
   return (
     <div className="page">
+<<<<<<< Updated upstream
       <PageHead label="Inventory" title="คลังยา &" em="สต็อก" sub="จัดการสินค้า รับยาเข้า ตรวจนับ และติดตามวันหมดอายุแยกตาม Lot">
         <button className="btn" onClick={exportCSV}>CSV</button>
         <button className="btn" onClick={() => setRecv({ productId: state.products[0]?.id || '', lotNo: '', exp: today(365), qty: '', cost: '', supplier: '', invoiceNo: '' })}>＋ รับยาเข้า</button>
         <button className="btn primary" onClick={() => setEdit({ ...blank })}>＋ เพิ่มสินค้า</button>
+=======
+      <PageHead
+        label="Inventory"
+        title="คลังยา &"
+        em="สต็อก"
+        sub="จัดการสินค้า รับยาเข้า ตรวจนับ และติดตามวันหมดอายุแยกตาม Lot"
+      >
+        <button className="btn" onClick={exportCSV}>
+          CSV
+        </button>
+        <button
+          className="btn"
+          onClick={() =>
+            setRecv({
+              productId: state.products[0]?.id || "",
+              lotNo: "",
+              exp: today(365),
+              qty: "",
+              cost: "",
+              supplier: "",
+              invoiceNo: "",
+            })
+          }
+        >
+          + รับยาเข้า
+        </button>
+        <button className="btn primary" onClick={() => setEdit({ ...blank })}>
+          + เพิ่มสินค้า
+        </button>
+>>>>>>> Stashed changes
       </PageHead>
 
       <div className="grid stats" style={{ marginBottom: 20 }}>
@@ -144,6 +175,7 @@ export default function Inventory() {
         </div>
       ) : <Moves />}
 
+<<<<<<< Updated upstream
       {edit && <ProductForm initial={edit} onClose={() => setEdit(null)}
         onSave={async (p) => { if (await act('saveProduct', p, 'บันทึกสินค้าแล้ว')) setEdit(null) }}
         onDelete={edit.id ? async () => { if (confirm(`ลบ "${edit.name}" ออกจากรายการขาย?\n(ประวัติการขายยังคงอยู่)`) && await act('deleteProduct', edit.id, 'ลบสินค้าแล้ว')) setEdit(null) } : null} />}
@@ -153,6 +185,66 @@ export default function Inventory() {
         const body = { productId: a.p.id, lotNo: a.l.lotNo, exp: a.l.exp, reason: a.reason, detail: a.detail, count: a.count, qty: a.qty, ref: a.ref }
         if (await act(a.kind, body, a.kind === 'adjust' ? 'ปรับยอดแล้ว' : 'ตัดสต็อกแล้ว')) setLotAct(null)
       }} />}
+=======
+      {edit && (
+        <ProductForm
+          initial={edit}
+          onClose={() => setEdit(null)}
+          onSave={async (p) => {
+            if (await act("saveProduct", p, "บันทึกสินค้าแล้ว")) setEdit(null);
+          }}
+          onDelete={
+            edit.id
+              ? async () => {
+                if (
+                  confirm(
+                    `ลบ "${edit.name}" ออกจากรายการขาย?\n(ประวัติการขายยังคงอยู่)`,
+                  ) &&
+                  (await act("deleteProduct", edit.id, "ลบสินค้าแล้ว"))
+                )
+                  setEdit(null);
+              }
+              : null
+          }
+        />
+      )}
+      {recv && (
+        <ReceiveForm
+          initial={recv}
+          products={state.products}
+          onClose={() => setRecv(null)}
+          onSave={async (r) => {
+            if (await act("receive", r, "รับยาเข้าสต็อกแล้ว")) setRecv(null);
+          }}
+        />
+      )}
+      {lotAct && (
+        <LotAction
+          a={lotAct}
+          onClose={() => setLotAct(null)}
+          onSave={async (a) => {
+            const body = {
+              productId: a.p.id,
+              lotNo: a.l.lotNo,
+              exp: a.l.exp,
+              reason: a.reason,
+              detail: a.detail,
+              count: a.count,
+              qty: a.qty,
+              ref: a.ref,
+            };
+            if (
+              await act(
+                a.kind,
+                body,
+                a.kind === "adjust" ? "ปรับยอดแล้ว" : "ตัดสต็อกแล้ว",
+              )
+            )
+              setLotAct(null);
+          }}
+        />
+      )}
+>>>>>>> Stashed changes
     </div>
   )
 }

@@ -321,6 +321,21 @@ export default function POS() {
                 if (isControlled) {
                   return (
                     <div className="cart-controlled-card" key={l.productId}>
+<<<<<<< Updated upstream
+=======
+                      
+                      <button
+                        style={{
+                          display: "flex",
+                          justifySelf: "end",
+                          alignItems: "end",
+                          marginLeft: "auto",
+                        }}
+                        onClick={() => setQty(l.productId, 0)}
+                        >
+                        X
+                      </button>
+>>>>>>> Stashed changes
                       <div className="cart-line-main">
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div className="nm">{l.p.name}</div>

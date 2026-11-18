@@ -41,9 +41,13 @@ const mapSettings = (r) => r ? ({
 }) : {}
 
 async function move(c, m) {
-  await c.query(
-    'INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, balance, ref, note, detail, staff_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-    [m.at || toDT(), m.type, m.productId, m.name, m.lotNo || null, m.exp || null, m.qty, m.balance ?? null, m.ref || null, m.note || null, m.detail || null, m.staffId || null],
+  // await c.query(
+  //   'INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, balance, ref, note, detail, staff_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+  //   [m.at || toDT(), m.type, m.productId, m.name, m.lotNo || null, m.exp || null, m.qty, m.balance ?? null, m.ref || null, m.note || null, m.detail || null, m.staffId || null],
+  // )
+   await c.query(
+    'INSERT INTO stock_moves (at, type, product_id, name, lot_no, exp, qty, ref, note, staff_id) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    [m.at || toDT(), m.type, m.productId, m.name, m.lotNo || null, m.exp || null, m.qty, m.ref || null, m.note || null, m.staffId || null],
   )
 }
 
