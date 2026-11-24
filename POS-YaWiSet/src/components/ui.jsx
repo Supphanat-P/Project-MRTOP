@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
-import { catIndex, CATEGORY_INFO } from '../utils.js'
+import { useEffect, useState } from 'react'
+import { catIndex, CATEGORY_INFO, checkPasswordCriteria } from '../utils.js'
 
 export function Modal({ title, onClose, children, footer, wide }) {
   useEffect(() => {
@@ -124,3 +124,61 @@ export const Avatar = ({ staff, size }) => (
     {staff?.name?.[0] || '?'}
   </span>
 )
+
+export function PasswordInput({ value, onChange, placeholder = 'รหัสผ่าน', autoFocus, className = '', disabled, id, ariaLabel }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div className={'pass-box ' + className}>
+      <input
+        id={id}
+        type={show ? 'text' : 'password'}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        autoFocus={autoFocus}
+        disabled={disabled}
+        aria-label={ariaLabel || placeholder}
+        autoComplete="current-password"
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        className="pass-toggle-btn"
+        onClick={() => setShow(!show)}
+        aria-label={show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+        title={show ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+      >
+        {show ? 'ซ่อน' : 'แสดง'}
+      </button>
+    </div>
+  )
+}
+
+export function PasswordCriteriaView({ password }) {
+  const c = checkPasswordCriteria(password)
+  return (
+    <div className="pwd-criteria">
+      <div className="pwd-title">เงื่อนไขรหัสผ่าน:</div>
+      <div className={'pwd-item ' + (c.length ? 'pass' : '')}>
+        <span className="pwd-icon">{c.length ? '✓' : '○'}</span>
+        <span>ความยาวอย่างน้อย 8 ตัวอักษร</span>
+      </div>
+      <div className={'pwd-item ' + (c.lower ? 'pass' : '')}>
+        <span className="pwd-icon">{c.lower ? '✓' : '○'}</span>
+        <span>ตัวอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว</span>
+      </div>
+      <div className={'pwd-item ' + (c.upper ? 'pass' : '')}>
+        <span className="pwd-icon">{c.upper ? '✓' : '○'}</span>
+        <span>ตัวอักษรพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว</span>
+      </div>
+      <div className={'pwd-item ' + (c.digit ? 'pass' : '')}>
+        <span className="pwd-icon">{c.digit ? '✓' : '○'}</span>
+        <span>ตัวเลข (0-9) อย่างน้อย 1 ตัว</span>
+      </div>
+      <div className={'pwd-item ' + (c.special ? 'pass' : '')}>
+        <span className="pwd-icon">{c.special ? '✓' : '○'}</span>
+        <span>ตัวอักษรพิเศษ (!@#$%^&*...) อย่างน้อย 1 ตัว</span>
+      </div>
+    </div>
+  )
+}

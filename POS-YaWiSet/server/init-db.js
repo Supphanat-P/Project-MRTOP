@@ -50,7 +50,7 @@ try {
     await clearAll(conn)
     await seedDatabase(conn)
     await conn.commit()
-    console.log('ใส่ข้อมูลตัวอย่างแล้ว - PIN: 1111 เจ้าของร้าน, 2222 เภสัชกร')
+    console.log('ใส่ข้อมูลตัวอย่างแล้ว - รหัสผ่าน: Admin@1234 เจ้าของร้าน, Pharm@2222 เภสัชกร')
   }
 } catch (e) {
   console.error('ตั้งค่าฐานข้อมูลไม่สำเร็จ:', e.message)

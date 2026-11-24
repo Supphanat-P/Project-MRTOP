@@ -54,10 +54,17 @@ export function StoreProvider({ children }) {
 
   useEffect(() => { if (staffId) refresh() }, [staffId, refresh])
 
-  const login = async (id, pin) => {
-    const r = await api('/login', { method: 'POST', body: { staffId: id, pin } })
+  const login = async (id, password) => {
+    const r = await api('/login', { method: 'POST', body: { staffId: id, password, pin: password } })
     setToken(r.token); ss.set(STAFF_KEY, id)
     setStaffId(id)
+  }
+
+  const register = async (staffData) => {
+    const r = await api('/register', { method: 'POST', body: staffData })
+    setToken(r.token); ss.set(STAFF_KEY, r.staff.id)
+    setStaffId(r.staff.id)
+    return r.staff
   }
 
   const act = async (name, payload, okMsg) => {
@@ -79,7 +86,7 @@ export function StoreProvider({ children }) {
 
   const me = staffId ? state.staff.find((s) => s.id === staffId) || null : null
   return (
-    <Ctx.Provider value={{ state, act, me, staffId, loaded, busy, error, login, logout, refresh, notify }}>
+    <Ctx.Provider value={{ state, act, me, staffId, loaded, busy, error, login, logout, register, refresh, notify }}>
       {children}
       {toast && <div className={'toast ' + toast.kind} role="status">{toast.msg}</div>}
     </Ctx.Provider>

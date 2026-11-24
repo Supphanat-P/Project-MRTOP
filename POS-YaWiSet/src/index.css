@@ -262,6 +262,30 @@ tr.voided td { opacity: .55; text-decoration: line-through; }
 .keypad button { padding: 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); font-size: 1.15rem; font-weight: 600; transition: background .25s, color .25s; }
 .keypad button:hover { background: var(--accent-ghost); color: var(--accent); }
 
+.pass-box { position: relative; display: flex; align-items: center; width: 100%; }
+.pass-box input { padding-right: 58px !important; }
+.pass-toggle-btn {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  padding: 4px 10px; border-radius: 8px; font-size: .78rem; font-weight: 500;
+  color: var(--text-3); background: var(--surface-2); border: 1px solid var(--border);
+  transition: all .2s ease;
+}
+.pass-toggle-btn:hover { color: var(--accent); border-color: var(--accent-light); background: var(--accent-ghost); }
+
+.pwd-criteria {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 12px 14px; margin-top: 8px; display: grid; gap: 6px; font-size: .78rem;
+}
+.pwd-title { font-weight: 600; color: var(--text-2); margin-bottom: 2px; }
+.pwd-item { display: flex; align-items: center; gap: 8px; color: var(--text-3); transition: color .2s ease; }
+.pwd-item.pass { color: var(--ok); font-weight: 500; }
+.pwd-icon {
+  display: inline-grid; place-items: center; width: 16px; height: 16px;
+  font-size: .75rem; font-weight: 700; border-radius: 50%; background: rgba(13,30,28,.06);
+}
+.pwd-item.pass .pwd-icon { background: var(--ok-bg); color: var(--ok); }
+
+
 
 .pos { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 22px; align-items: start; }
 .prod-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 14px; margin-top: 16px; }

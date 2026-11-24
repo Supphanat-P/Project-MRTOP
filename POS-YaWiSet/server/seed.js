@@ -16,8 +16,8 @@ const products = [
 const LIC_TYPE = 'ใบอนุญาตประกอบวิชาชีพเภสัชกรรม'
 const fiveYearsAgo = (daysLeft) => { const t = new Date(d(daysLeft) + 'T00:00:00'); t.setFullYear(t.getFullYear() - 5); return t.toLocaleDateString('sv-SE') }
 const staff = [
-  ['s1', 'ภก.', 'สมชาย ใจดี', 'admin', '1111', '#1A7A6E', ['ภ.99001', '2014-06-01', 'มหาวิทยาลัยตัวอย่าง', 'เภสัชศาสตรบัณฑิต']],
-  ['s2', 'ภญ.', 'สุภาพร รักษ์ยา', 'pharmacist', '2222', '#7c3aed', ['ภ.99002', fiveYearsAgo(20), 'มหาวิทยาลัยสาธิต', 'เภสัชศาสตรบัณฑิต (การบริบาลทางเภสัชกรรม)']],
+  ['s1', 'ภก.', 'สมชาย ใจดี', 'admin', 'Admin@1234', '#1A7A6E', ['ภ.99001', '2014-06-01', 'มหาวิทยาลัยตัวอย่าง', 'เภสัชศาสตรบัณฑิต']],
+  ['s2', 'ภญ.', 'สุภาพร รักษ์ยา', 'pharmacist', 'Pharm@2222', '#7c3aed', ['ภ.99002', fiveYearsAgo(20), 'มหาวิทยาลัยสาธิต', 'เภสัชศาสตรบัณฑิต (การบริบาลทางเภสัชกรรม)']],
 ]
 
 const TABLES_CLEAR_ORDER = ['receipt_item_lots', 'receipt_items', 'receipts', 'stock_moves', 'product_lots', 'products', 'customers', 'staff', 'shop_settings']

@@ -42,6 +42,18 @@ export const localDate = (offsetDays = 0) => {
   return t.toLocaleDateString('sv-SE')
 }
 
+export const validatePassword = (pwd) => {
+  if (!pwd || typeof pwd !== 'string') return 'กรุณากรอกรหัสผ่าน'
+  if (pwd.length < 8) return 'รหัสผ่านต้องมีความยาวอย่างน้อย 8 ตัวอักษร'
+  if (!/[a-z]/.test(pwd)) return 'รหัสผ่านต้องมีตัวอักษรพิมพ์เล็ก (a-z) อย่างน้อย 1 ตัว'
+  if (!/[A-Z]/.test(pwd)) return 'รหัสผ่านต้องมีตัวอักษรพิมพ์ใหญ่ (A-Z) อย่างน้อย 1 ตัว'
+  if (!/\d/.test(pwd)) return 'รหัสผ่านต้องมีตัวเลข (0-9) อย่างน้อย 1 ตัว'
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?`~]/.test(pwd)) {
+    return 'รหัสผ่านต้องมีตัวอักษรพิเศษ (!@#$%^&*...) อย่างน้อย 1 ตัว'
+  }
+  return null
+}
+
 export const hashPin = (pin) => {
   const salt = crypto.randomBytes(16).toString('hex')
   return salt + ':' + crypto.scryptSync(String(pin), salt, 32).toString('hex')
@@ -52,6 +64,8 @@ export const verifyPin = (pin, stored) => {
   const test = crypto.scryptSync(String(pin), salt, 32)
   return crypto.timingSafeEqual(test, Buffer.from(hash, 'hex'))
 }
+export const hashPassword = hashPin
+export const verifyPassword = verifyPin
 
 export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status }
