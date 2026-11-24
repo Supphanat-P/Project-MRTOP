@@ -39,6 +39,12 @@ try {
     await conn.query('ALTER TABLE stock_moves ADD COLUMN balance INT NULL AFTER qty, ADD COLUMN detail VARCHAR(500) NULL AFTER note')
     console.log('เพิ่มคอลัมน์คงเหลือและรายละเอียดในประวัติสต็อกแล้ว')
   }
+  const [icols] = await conn.query("SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'receipt_items'", [DB_NAME])
+  if (!icols.some((x) => x.c === 'rx_no')) {
+    await conn.query('ALTER TABLE receipt_items ADD COLUMN rx_no VARCHAR(50) NULL AFTER dosage, ADD COLUMN prescriber VARCHAR(150) NULL AFTER rx_no')
+    await conn.query("UPDATE receipt_items i JOIN receipts r ON r.id = i.receipt_id SET i.rx_no = r.rx_no, i.prescriber = r.prescriber WHERE i.category = 'ยาควบคุมพิเศษ' AND r.rx_no IS NOT NULL")
+    console.log('เพิ่มเลขใบสั่งยาและชื่อแพทย์แยกตามรายการยาแล้ว')
+  }
   const [lic] = await conn.query(`UPDATE staff SET lic_expires = CASE WHEN YEAR(lic_issued) <= ${LIFETIME_LAST_YEAR} THEN NULL ELSE DATE_ADD(lic_issued, INTERVAL 5 YEAR) END
     WHERE lic_no IS NOT NULL AND lic_issued IS NOT NULL`)
   if (lic.changedRows) console.log(`ปรับวันหมดอายุใบอนุญาตตามวันออกใบอนุญาตแล้ว ${lic.changedRows} คน`)

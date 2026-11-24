@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useStore } from '../store.jsx'
-import { getPasswordError, isLifetime, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, uid } from '../utils.js'
+import { getPasswordError, isLicenseNo, isLifetime, LICENSE_NO_DIGITS, LICENSE_RENEW_DAYS, licenseExpiry, licenseStatus, licenseUntil, LIFETIME_LAST_YEAR, renewFrom, ROLE_LABEL, thDate, today, toLicenseNo, uid } from '../utils.js'
 import { Avatar, Badge, Field, Modal, PageHead, PasswordCriteriaView, PasswordInput, Stat } from '../components/ui.jsx'
 import LicenseDoc from '../components/LicenseDoc.jsx'
 import ThaiDateInput from '../components/ThaiDateInput.jsx'

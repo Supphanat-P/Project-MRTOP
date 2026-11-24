@@ -2,7 +2,7 @@ import express from 'express'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { fromDT, hashPin, HttpError, isSellable, licenseExpiry, localDate, newId, pool, toDT, tx, validatePassword, verifyPin } from './db.js'
+import { fromDT, hashPin, HttpError, isLicenseNo, isSellable, LICENSE_NO_DIGITS, licenseExpiry, localDate, newId, pool, toDT, tx, validatePassword, verifyPin } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const app = express()
@@ -77,7 +77,8 @@ app.post('/api/register', wrap(async (req, res) => {
   if (err) throw new HttpError(400, err)
 
   const [[{ count }]] = await pool.query('SELECT COUNT(*) AS count FROM staff WHERE active = 1')
-  const role = count === 0 ? 'admin' : (ROLES.includes(s.role) ? s.role : 'pharmacist')
+  if (count > 0) throw new HttpError(403, 'สมัครเองได้เฉพาะบัญชีแรกของร้าน - ให้เจ้าของร้านเพิ่มพนักงานในหน้าเภสัชกร / พนักงาน')
+  const role = 'admin'
   const title = s.title?.trim() || 'ภก.'
   const l = s.license?.no?.trim() ? s.license : null
   if (role === 'pharmacist' && !l) throw new HttpError(400, 'เภสัชกรต้องมีเลขที่ใบอนุญาตและวันออกใบอนุญาต')
@@ -138,7 +139,7 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
   for (const l of itemLots) (ilBy[l.receipt_item_id] ||= []).push({ lotNo: l.lot_no, exp: l.exp, qty: l.qty })
   const itemsBy = {}
   for (const i of items) (itemsBy[i.receipt_id] ||= []).push({
-    productId: i.product_id, name: i.name, category: i.category, unit: i.unit, price: i.price, cost: i.cost, qty: i.qty, dosage: i.dosage, lots: ilBy[i.id] || [],
+    productId: i.product_id, name: i.name, category: i.category, unit: i.unit, price: i.price, cost: i.cost, qty: i.qty, dosage: i.dosage, rxNo: i.rx_no, prescriber: i.prescriber, lots: ilBy[i.id] || [],
   })
 
   res.json({
@@ -271,10 +272,13 @@ app.post('/api/checkout', wrap(async (req, res) => {
       if (!(qty > 0)) throw new HttpError(400, 'จำนวนไม่ถูกต้อง')
       const [[p]] = await c.query('SELECT * FROM products WHERE id = ? AND active = 1', [line.productId])
       if (!p) throw new HttpError(404, 'ไม่พบสินค้า')
-      lines.push({ p, qty })
+      const isRx = p.category === 'ยาควบคุมพิเศษ'
+      const rxNo = isRx ? String(line.rxNo || r.rxNo || '').trim().slice(0, 50) || null : null
+      const prescriber = isRx ? String(line.prescriber || r.prescriber || '').trim().slice(0, 150) || null : null
+      if (isRx && (!rxNo || !prescriber)) throw new HttpError(400, `${p.name} เป็นยาควบคุมพิเศษ ต้องระบุเลขใบสั่งยาและชื่อแพทย์`)
+      lines.push({ p, qty, rxNo, prescriber })
     }
     const needPharm = lines.some((l) => PHARMACIST_ONLY.includes(l.p.category))
-    const needRx = lines.some((l) => l.p.category === 'ยาควบคุมพิเศษ')
 
     const pharmacistId = r.pharmacistId || null
     if (needPharm && !pharmacistId) throw new HttpError(400, 'มียาอันตราย/ยาควบคุมพิเศษ ต้องระบุเภสัชกรผู้จ่ายยา')
@@ -283,9 +287,6 @@ app.post('/api/checkout', wrap(async (req, res) => {
       if (!ph?.lic_no) throw new HttpError(400, 'ผู้จ่ายยาไม่มีใบประกอบวิชาชีพ')
       if (ph.lic_expires && ph.lic_expires < today) throw new HttpError(400, `ใบอนุญาตของ ${ph.title}${ph.name} หมดอายุแล้ว`)
     }
-    const rxNo = r.rxNo?.trim() || null
-    const prescriber = r.prescriber?.trim() || null
-    if (needRx && (!rxNo || !prescriber)) throw new HttpError(400, 'ยาควบคุมพิเศษต้องระบุเลขใบสั่งยาและชื่อแพทย์')
 
     const subtotal = +lines.reduce((s, l) => s + l.p.price * l.qty, 0).toFixed(2)
     const discount = Math.min(Math.max(Number(r.discount) || 0, 0), subtotal)
@@ -304,10 +305,10 @@ app.post('/api/checkout', wrap(async (req, res) => {
     await c.query(
       `INSERT INTO receipts (id, no, at, customer_id, staff_id, pharmacist_id, rx_no, prescriber, subtotal, discount, total, payment, received, change_amt)
        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [receiptId, no, at, cust?.id || null, req.user.staffId, pharmacistId, rxNo, prescriber, subtotal, discount, total, payment, received, +(received - total).toFixed(2)],
+      [receiptId, no, at, cust?.id || null, req.user.staffId, pharmacistId, null, null, subtotal, discount, total, payment, received, +(received - total).toFixed(2)],
     )
 
-    for (const { p, qty } of lines) {
+    for (const { p, qty, rxNo, prescriber } of lines) {
       const [all] = await c.query(
         'SELECT id, lot_no, exp, qty FROM product_lots WHERE product_id = ? AND qty > 0 ORDER BY exp FOR UPDATE',
         [p.id],
@@ -317,8 +318,8 @@ app.post('/api/checkout', wrap(async (req, res) => {
       if (avail < qty) throw new HttpError(409, `${p.name} สต็อกพร้อมขายไม่พอ (ขายได้ ${avail} ${p.unit})`)
 
       const [ins] = await c.query(
-        'INSERT INTO receipt_items (receipt_id, product_id, name, category, unit, price, cost, qty, dosage) VALUES (?,?,?,?,?,?,?,?,?)',
-        [receiptId, p.id, p.name, p.category, p.unit, p.price, p.cost, qty, p.dosage],
+        'INSERT INTO receipt_items (receipt_id, product_id, name, category, unit, price, cost, qty, dosage, rx_no, prescriber) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+        [receiptId, p.id, p.name, p.category, p.unit, p.price, p.cost, qty, p.dosage, rxNo, prescriber],
       )
       let need = qty
       for (const l of lots) {

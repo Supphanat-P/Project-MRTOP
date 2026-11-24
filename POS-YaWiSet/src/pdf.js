@@ -75,6 +75,7 @@ export function receiptDoc(r, state) {
       ...r.items.flatMap((it) => [
         T(it.name),
         row(`${it.qty} ${it.unit} × ${it.price.toFixed(2)}`, (it.qty * it.price).toFixed(2), { margin: [8, 0, 0, 0] }),
+        it.rxNo ? T(`ใบสั่งยา ${it.rxNo} · ${it.prescriber}`, { margin: [8, 0, 0, 0] }) : '',
       ]),
       line(inner),
       row('รวม', baht(r.subtotal)),

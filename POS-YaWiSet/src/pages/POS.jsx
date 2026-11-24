@@ -116,8 +116,6 @@ export default function POS() {
   const [cart, setCart] = useState([]);
   const [customerId, setCustomerId] = useState("c1");
   const pharmacistId = me?.id || "";
-  const [rxNo, setRxNo] = useState("");
-  const [prescriber, setPrescriber] = useState("");
   const [discount, setDiscount] = useState("");
   const [payment, setPayment] = useState("cash");
   const [received, setReceived] = useState("");
@@ -145,9 +143,11 @@ export default function POS() {
     setCart(
       have
         ? cart.map((c) => (c.productId === p.id ? { ...c, qty: c.qty + n } : c))
-        : [...cart, { productId: p.id, qty: n }],
+        : [...cart, { productId: p.id, qty: n, rxNo: "", prescriber: "" }],
     );
   };
+  const setRx = (id, k, v) =>
+    setCart(cart.map((c) => (c.productId === id ? { ...c, [k]: v } : c)));
   const setQty = (id, v) => {
     const p = state.products.find((x) => x.id === id);
     const n = Math.min(Math.max(parseInt(v) || 0, 0), stockOf(p));
@@ -177,7 +177,6 @@ export default function POS() {
   const total = subtotal - disc;
   const change = (Number(received) || 0) - total;
   const needPharm = lines.some((l) => PHARMACIST_ONLY.includes(l.p.category));
-  const needRx = lines.some((l) => l.p.category === "ยาควบคุมพิเศษ");
   const cust = state.customers.find((c) => c.id === customerId);
 
   const checkout = async () => {
@@ -190,20 +189,27 @@ export default function POS() {
         );
       }
     }
-    if (needRx && (!rxNo.trim() || !prescriber.trim()))
+    const missingRx = lines.find(
+      (l) =>
+        l.p.category === "ยาควบคุมพิเศษ" &&
+        (!l.rxNo?.trim() || !l.prescriber?.trim()),
+    );
+    if (missingRx)
       return notify(
-        "ยาควบคุมพิเศษต้องระบุเลขใบสั่งยาและชื่อแพทย์ในกล่องรายการยา",
+        `${missingRx.p.name} เป็นยาควบคุมพิเศษ ต้องระบุเลขใบสั่งยาและชื่อแพทย์`,
         "danger",
       );
     if (payment === "cash" && change < 0)
       return notify("รับเงินไม่พอ", "danger");
     const res = await act("checkout", {
-      cart: cart.map(({ productId, qty }) => ({ productId, qty })),
+      cart: lines.map(({ productId, qty, rxNo, prescriber, p }) =>
+        p.category === "ยาควบคุมพิเศษ"
+          ? { productId, qty, rxNo: (rxNo || "").trim(), prescriber: (prescriber || "").trim() }
+          : { productId, qty },
+      ),
       receipt: {
         customerId,
         pharmacistId: me?.id || null,
-        rxNo: needRx ? rxNo.trim() : null,
-        prescriber: needRx ? prescriber.trim() : null,
         discount: disc,
         payment,
         received: payment === "cash" ? Number(received) : total,
@@ -214,8 +220,6 @@ export default function POS() {
     setCart([]);
     setDiscount("");
     setReceived("");
-    setRxNo("");
-    setPrescriber("");
     setCustomerId("c1");
   };
 
@@ -298,11 +302,7 @@ export default function POS() {
             {lines.length > 0 && (
               <button
                 className="btn ghost sm"
-                onClick={() => {
-                  setCart([]);
-                  setRxNo("");
-                  setPrescriber("");
-                }}
+                onClick={() => setCart([])}
               >
                 ล้าง
               </button>
@@ -387,15 +387,21 @@ export default function POS() {
                           <Field label="เลขที่ใบสั่งยา *">
                             <input
                               placeholder="เช่น RX-2026-001"
-                              value={rxNo}
-                              onChange={(e) => setRxNo(e.target.value)}
+                              value={l.rxNo || ""}
+                              maxLength={50}
+                              onChange={(e) =>
+                                setRx(l.productId, "rxNo", e.target.value)
+                              }
                             />
                           </Field>
                           <Field label="ชื่อแพทย์ผู้สั่งยา *">
                             <input
                               placeholder="เช่น นพ.สมศักดิ์ รักดี"
-                              value={prescriber}
-                              onChange={(e) => setPrescriber(e.target.value)}
+                              value={l.prescriber || ""}
+                              maxLength={150}
+                              onChange={(e) =>
+                                setRx(l.productId, "prescriber", e.target.value)
+                              }
                             />
                           </Field>
                         </div>

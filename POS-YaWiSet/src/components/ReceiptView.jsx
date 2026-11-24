@@ -24,6 +24,7 @@ export default function ReceiptView({ receipt: r }) {
         <div key={i}>
           <div>{it.name}</div>
           <div className="ln"><span>&nbsp; {it.qty} {it.unit} × {it.price.toFixed(2)}</span><span>{(it.qty * it.price).toFixed(2)}</span></div>
+          {it.rxNo && <div>&nbsp; ใบสั่งยา {it.rxNo} · {it.prescriber}</div>}
         </div>
       ))}
       <hr />

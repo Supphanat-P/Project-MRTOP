@@ -108,6 +108,8 @@ CREATE TABLE IF NOT EXISTS receipt_items (
   cost        DECIMAL(10,2) NOT NULL,
   qty         INT NOT NULL,
   dosage      TEXT,
+  rx_no       VARCHAR(50) NULL,
+  prescriber  VARCHAR(150) NULL,
   CONSTRAINT fk_ri_receipt FOREIGN KEY (receipt_id) REFERENCES receipts(id) ON DELETE CASCADE,
   CONSTRAINT fk_ri_product FOREIGN KEY (product_id) REFERENCES products(id)
 ) ENGINE=InnoDB;
