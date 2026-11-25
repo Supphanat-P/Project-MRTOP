@@ -4,7 +4,10 @@ import {
   baht,
   CATEGORIES,
   CATEGORY_INFO,
+  allergyHits,
+  allergyText,
   fmtPhone,
+  hasAllergy,
   isDrug,
   licenseStatus,
   matchMember,
@@ -81,7 +84,7 @@ function MemberPicker({ customer, onPick }) {
                       {c.memberNo} · {fmtPhone(c.phone)}
                     </small>
                   </span>
-                  {c.allergies && <Badge cls="danger">แพ้ยา</Badge>}
+                  {hasAllergy(c) && <Badge cls="danger">แพ้ยา</Badge>}
                 </button>
               ))}
               {!hits.length && <div className="empty small">ไม่พบสมาชิก</div>}
@@ -136,7 +139,15 @@ export default function POS() {
 
   const canSellDrugs =
     !!me?.license && licenseStatus(me.license).key !== "expired";
+  const cust = state.customers.find((c) => c.id === customerId);
+  const allergens = cust?.allergens || [];
   const add = (p, n = 1) => {
+    const hit = allergyHits(p, allergens);
+    if (hit.length)
+      return notify(
+        `${cust.name} แพ้ยา ${hit.join(", ")} - ห้ามจ่าย ${p.name}`,
+        "danger",
+      );
     if (isDrug(p) && !canSellDrugs)
       return notify(
         `${p.name} เป็นยา ต้องมีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุจึงจะขายได้`,
@@ -185,10 +196,15 @@ export default function POS() {
   const total = subtotal - disc;
   const change = (Number(received) || 0) - total;
   const needPharm = lines.some((l) => isDrug(l.p));
-  const cust = state.customers.find((c) => c.id === customerId);
+  const allergic = lines.filter((l) => allergyHits(l.p, allergens).length);
 
   const checkout = async () => {
     if (!lines.length) return notify("ยังไม่มีสินค้าในตะกร้า", "danger");
+    if (allergic.length)
+      return notify(
+        `${cust.name} แพ้ยา - เอา ${allergic.map((l) => l.p.name).join(", ")} ออกจากตะกร้าก่อน`,
+        "danger",
+      );
     if (needPharm && !canSellDrugs)
       return notify(
         "ในตะกร้ามียา ผู้ใช้งานที่เข้าสู่ระบบต้องมีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุ",
@@ -278,13 +294,14 @@ export default function POS() {
               const st = stockOf(p);
               const isControlled = p.category === "ยาควบคุมพิเศษ";
               const isDangerous = p.category === "ยาอันตราย";
-              const locked = isDrug(p) && !canSellDrugs;
+              const allergy = allergyHits(p, allergens).length > 0;
+              const locked = allergy || (isDrug(p) && !canSellDrugs);
               return (
                 <button
                   key={p.id}
                   className={`prod ${isControlled ? "prod-controlled" : isDangerous ? "prod-danger" : ""}`}
                   disabled={!st || locked}
-                  title={locked ? "ต้องมีใบประกอบวิชาชีพเภสัชกรรม" : undefined}
+                  title={allergy ? `${cust.name} แพ้ยานี้` : locked ? "ต้องมีใบประกอบวิชาชีพเภสัชกรรม" : undefined}
                   onClick={() => add(p)}
                 >
                   <div className="prod-badge-row">
@@ -297,7 +314,7 @@ export default function POS() {
                     <Badge
                       cls={!st ? "danger" : st <= p.minStock ? "warn" : "muted"}
                     >
-                      {locked ? "ต้องมีใบอนุญาต" : st ? `${st} ${p.unit}` : "หมด"}
+                      {allergy ? "ลูกค้าแพ้" : locked ? "ต้องมีใบอนุญาต" : st ? `${st} ${p.unit}` : "หมด"}
                     </Badge>
                   </span>
                 </button>
@@ -325,9 +342,17 @@ export default function POS() {
           </div>
           <div className="window-body">
             <MemberPicker customer={cust} onPick={setCustomerId} />
-            {cust?.allergies && (
+            {hasAllergy(cust) && (
               <div className="alert danger" style={{ marginTop: 8 }}>
-                ประวัติแพ้ยา: {cust.allergies}
+                แพ้ยา: {allergyText(cust)}
+                {allergic.length > 0 && (
+                  <>
+                    <br />
+                    <b>
+                      ในตะกร้ามียาที่แพ้: {allergic.map((l) => l.p.name).join(", ")} - ต้องเอาออกก่อนชำระเงิน
+                    </b>
+                  </>
+                )}
               </div>
             )}
 

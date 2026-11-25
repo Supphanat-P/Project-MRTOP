@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useStore } from '../store.jsx'
-import { baht, downloadCSV, fmtPhone, matchMember, blankMember, memberStats, PAY_LABEL, thDate, today } from '../utils.js'
+import { allergenLabel, allergyText, baht, downloadCSV, fmtPhone, hasAllergy, matchMember, blankMember, memberStats, PAY_LABEL, thDate, today } from '../utils.js'
 import { Badge, Modal, PageHead, Stat } from '../components/ui.jsx'
 import MemberForm from '../components/MemberForm.jsx'
 
@@ -18,8 +18,8 @@ export default function Members() {
   const memberSales = members.reduce((s, c) => s + c.total, 0)
 
   const exportCSV = () => downloadCSV(`members-${today()}.csv`, [
-    ['รหัสสมาชิก', 'ชื่อ', 'เบอร์โทร', 'วันเกิด', 'แพ้ยา', 'หมายเหตุ', 'ซื้อ (ครั้ง)', 'ยอดซื้อรวม', 'สมัครเมื่อ'],
-    ...members.map((c) => [c.memberNo, c.name, fmtPhone(c.phone), c.birthDate || '', c.allergies, c.note, c.visits, c.total, thDate(c.createdAt)]),
+    ['รหัสสมาชิก', 'ชื่อ', 'เบอร์โทร', 'วันเกิด', 'ยาที่แพ้', 'อาการแพ้', 'หมายเหตุ', 'ซื้อ (ครั้ง)', 'ยอดซื้อรวม', 'สมัครเมื่อ'],
+    ...members.map((c) => [c.memberNo, c.name, fmtPhone(c.phone), c.birthDate || '', (c.allergens || []).join(', '), c.allergies, c.note, c.visits, c.total, thDate(c.createdAt)]),
   ])
 
   const viewing = history && members.find((c) => c.id === history)
@@ -35,7 +35,7 @@ export default function Members() {
       <div className="grid stats" style={{ marginBottom: 20 }}>
         <Stat accent label="สมาชิกทั้งหมด" value={members.length} />
         <Stat label="สมัครใหม่เดือนนี้" value={newThisMonth} />
-        <Stat label="มีประวัติแพ้ยา" value={members.filter((c) => c.allergies).length} change="แจ้งเตือนในหน้าขาย" />
+        <Stat label="มีประวัติแพ้ยา" value={members.filter(hasAllergy).length} change="แจ้งเตือนในหน้าขาย" />
         <Stat label="ยอดซื้อจากสมาชิก" value={baht(memberSales)} />
       </div>
 
@@ -52,7 +52,7 @@ export default function Members() {
                   <td className="mono nowrap"><b>{c.memberNo}</b></td>
                   <td>{c.name}{c.note && <><br /><small className="muted">{c.note}</small></>}</td>
                   <td className="nowrap">{fmtPhone(c.phone)}</td>
-                  <td>{c.allergies ? <Badge cls="danger">{c.allergies}</Badge> : <span className="muted">-</span>}</td>
+                  <td>{hasAllergy(c) ? <div className="chips">{(c.allergens || []).map((a) => <span key={a} className="chip danger">{allergenLabel(a)}</span>)}{c.allergies && <small className="muted">{c.allergies}</small>}</div> : <span className="muted">-</span>}</td>
                   <td className="right">{c.visits}</td>
                   <td className="right nowrap">{baht(c.total)}</td>
                   <td className="nowrap">{c.last ? thDate(c.last) : '-'}</td>
@@ -76,7 +76,7 @@ export default function Members() {
             <div className="alert"><b>วันเกิด</b><br />{viewing.birthDate ? thDate(viewing.birthDate) : '-'}</div>
             <div className="alert"><b>สมัครเมื่อ</b><br />{thDate(viewing.createdAt)}</div>
           </div>
-          {viewing.allergies && <div className="alert danger" style={{ marginBottom: 16 }}>ประวัติแพ้ยา: {viewing.allergies}</div>}
+          {hasAllergy(viewing) && <div className="alert danger" style={{ marginBottom: 16 }}>แพ้ยา: {allergyText(viewing)}</div>}
           <div className="table-wrap">
             <table>
               <thead><tr><th>เลขที่</th><th>วันที่</th><th>รายการ</th><th className="right">ยอด</th><th>ชำระ</th></tr></thead>

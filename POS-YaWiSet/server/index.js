@@ -2,7 +2,7 @@ import express from 'express'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { fromDT, hashPin, HttpError, isLicenseNo, isSellable, LICENSE_NO_DIGITS, licenseExpiry, localDate, newId, pool, toDT, tx, validatePassword, verifyPin } from './db.js'
+import { allergyHits, cleanAllergens, fromDT, hashPin, HttpError, isLicenseNo, isSellable, LICENSE_NO_DIGITS, licenseExpiry, localDate, newId, pool, toDT, tx, validatePassword, verifyPin } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const app = express()
@@ -28,6 +28,9 @@ function auth(req, _res, next) {
 const lotQty = async (c, productId, lotNo, exp) => {
   const [[l]] = await c.query('SELECT qty FROM product_lots WHERE product_id = ? AND lot_no = ? AND exp = ?', [productId, lotNo, exp])
   return l?.qty ?? 0
+}
+const parseList = (s) => {
+  try { return cleanAllergens(JSON.parse(s || '[]')) } catch { return [] }
 }
 const role = (...roles) => (req, _res, next) =>
   roles.includes(req.user.role) ? next() : next(new HttpError(403, 'ไม่มีสิทธิ์ทำรายการนี้'))
@@ -146,7 +149,7 @@ app.get('/api/bootstrap', wrap(async (_req, res) => {
     settings: mapSettings(settings),
     staff: staff.map(mapStaff),
     customers: customers.map((c) => ({
-      id: c.id, memberNo: c.member_no, name: c.name, phone: c.phone || '', birthDate: c.birth_date, allergies: c.allergies || '',
+      id: c.id, memberNo: c.member_no, name: c.name, phone: c.phone || '', birthDate: c.birth_date, allergies: c.allergies || '', allergens: parseList(c.allergens),
       note: c.note || '', consentAt: fromDT(c.consent_at), createdAt: fromDT(c.created_at),
     })),
     products: products.map((p) => ({
@@ -278,6 +281,12 @@ app.post('/api/checkout', wrap(async (req, res) => {
       if (isRx && (!rxNo || !prescriber)) throw new HttpError(400, `${p.name} เป็นยาควบคุมพิเศษ ต้องระบุเลขใบสั่งยาและชื่อแพทย์`)
       lines.push({ p, qty, rxNo, prescriber })
     }
+    const [[cust]] = await c.query('SELECT id, name, allergens FROM customers WHERE id = ?', [r.customerId || ''])
+    const allergens = parseList(cust?.allergens)
+    for (const l of lines) {
+      const hit = allergyHits(l.p, allergens)
+      if (hit.length) throw new HttpError(409, `${cust.name} แพ้ยา ${hit.join(', ')} - ห้ามจ่าย ${l.p.name}`)
+    }
     const drugs = lines.filter((l) => DRUG_CATEGORIES.includes(l.p.category))
     const [[me]] = await c.query('SELECT * FROM staff WHERE id = ? AND active = 1', [req.user.staffId])
     const licensed = !!me?.lic_no && !(me.lic_expires && me.lic_expires < today)
@@ -297,7 +306,6 @@ app.post('/api/checkout', wrap(async (req, res) => {
     const [[last]] = await c.query('SELECT no FROM receipts WHERE no LIKE ? ORDER BY no DESC LIMIT 1 FOR UPDATE', [`R${day}-%`])
     const no = `R${day}-${String((last ? parseInt(last.no.split('-')[1]) : 0) + 1).padStart(4, '0')}`
     const receiptId = newId()
-    const [[cust]] = await c.query('SELECT id FROM customers WHERE id = ?', [r.customerId || ''])
 
     await c.query(
       `INSERT INTO receipts (id, no, at, customer_id, staff_id, pharmacist_id, rx_no, prescriber, subtotal, discount, total, payment, received, change_amt)
@@ -425,16 +433,17 @@ app.post('/api/customers', wrap(async (req, res) => {
     const [[dup]] = await conn.query('SELECT name, member_no FROM customers WHERE phone = ? AND id <> ? LIMIT 1', [phone, exist?.id || ''])
     if (dup) throw new HttpError(409, `เบอร์นี้เป็นสมาชิกอยู่แล้ว: ${dup.name} (${dup.member_no})`)
 
-    const fields = [name, phone, c.birthDate || null, c.allergies?.trim() || null, c.note?.trim() || null]
+    const allergens = cleanAllergens(c.allergens)
+    const fields = [name, phone, c.birthDate || null, c.allergies?.trim().slice(0, 500) || null, allergens.length ? JSON.stringify(allergens) : null, c.note?.trim() || null]
     if (exist) {
-      await conn.query('UPDATE customers SET name=?, phone=?, birth_date=?, allergies=?, note=? WHERE id=?', [...fields, exist.id])
+      await conn.query('UPDATE customers SET name=?, phone=?, birth_date=?, allergies=?, allergens=?, note=? WHERE id=?', [...fields, exist.id])
       return { id: exist.id, memberNo: exist.member_no }
     }
     const [[{ last }]] = await conn.query("SELECT MAX(CAST(SUBSTRING(member_no, 2) AS UNSIGNED)) AS last FROM customers WHERE member_no LIKE 'M%' FOR UPDATE")
     const memberNo = 'M' + String((last || 0) + 1).padStart(5, '0')
     const id = newId()
     await conn.query(
-      'INSERT INTO customers (id, member_no, name, phone, birth_date, allergies, note, consent_at, created_at) VALUES (?,?,?,?,?,?,?,?,?)',
+      'INSERT INTO customers (id, member_no, name, phone, birth_date, allergies, allergens, note, consent_at, created_at) VALUES (?,?,?,?,?,?,?,?,?,?)',
       [id, memberNo, ...fields, toDT(), toDT()],
     )
     return { id, memberNo }

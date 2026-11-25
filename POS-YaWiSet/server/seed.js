@@ -41,8 +41,8 @@ export async function seedDatabase(conn) {
   }
   const at = new Date().toISOString().slice(0, 19).replace('T', ' ')
   await conn.query("INSERT INTO customers (id, name, created_at) VALUES ('c1', 'ลูกค้าทั่วไป', ?)", [at])
-  for (const c of [['c2', 'M00001', 'คุณวิภา สุขใจ', '0810000001', 'แพ้ Penicillin'], ['c3', 'M00002', 'คุณประเสริฐ มั่นคง', '0810000002', null]]) {
-    await conn.query('INSERT INTO customers (id, member_no, name, phone, allergies, consent_at, created_at) VALUES (?,?,?,?,?,?,?)', [...c, at, at])
+  for (const c of [['c2', 'M00001', 'คุณวิภา สุขใจ', '0810000001', 'ผื่นขึ้นทั้งตัวหลังกินยา', '["Penicillin"]'], ['c3', 'M00002', 'คุณประเสริฐ มั่นคง', '0810000002', null, null]]) {
+    await conn.query('INSERT INTO customers (id, member_no, name, phone, allergies, allergens, consent_at, created_at) VALUES (?,?,?,?,?,?,?,?)', [...c, at, at])
   }
   for (const [id, barcode, name, generic, category, unit, price, cost, min, dosage, lots] of products) {
     await conn.query(

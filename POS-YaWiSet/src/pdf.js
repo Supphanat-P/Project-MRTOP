@@ -1,6 +1,6 @@
 import regularUrl from './assets/fonts/Sarabun-Regular.ttf?url'
 import boldUrl from './assets/fonts/Sarabun-Bold.ttf?url'
-import { baht, isLifetime, licenseStatus, PAY_LABEL, thDate, thDateLong } from './utils.js'
+import { allergyText, baht, hasAllergy, isLifetime, licenseStatus, PAY_LABEL, thDate, thDateLong } from './utils.js'
 
 const MM = 72 / 25.4
 const ACCENT = '#1A7A6E'
@@ -112,7 +112,7 @@ export function labelsDoc(r, state) {
         T(it.name, { bold: true, fontSize: 12, color: ACCENT, margin: [0, 2, 0, 1] }),
         T(`ผู้ป่วย: ${patient}`),
         T(`จำนวน: ${it.qty} ${it.unit} · Lot ${it.lots.map((l) => l.lotNo).join(', ') || '-'} · Exp ${it.lots[0] ? thDate(it.lots[0].exp) : '-'}`),
-        cust?.allergies ? T(`แพ้ยา: ${cust.allergies}`, { color: DANGER, bold: true }) : '',
+        hasAllergy(cust) ? T(`แพ้ยา: ${allergyText(cust)}`, { color: DANGER, bold: true }) : '',
         {
           table: { widths: ['*'], body: [[T(it.dosage || 'ตามคำแนะนำของเภสัชกร', { bold: true, fontSize: 9.5, margin: [2, 2, 2, 2] })]] },
           layout: { hLineWidth: () => 0.6, vLineWidth: () => 0.6, hLineColor: () => ACCENT, vLineColor: () => ACCENT },

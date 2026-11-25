@@ -71,6 +71,19 @@ export class HttpError extends Error {
   constructor(status, message) { super(message); this.status = status }
 }
 
+export const ALLERGY_GROUPS = {
+  Penicillin: ['penicillin', 'amoxicillin', 'ampicillin', 'cloxacillin', 'dicloxacillin'],
+  Cephalosporin: ['cefalexin', 'cephalexin', 'cefuroxime', 'cefixime', 'ceftriaxone', 'cefdinir'],
+  Sulfa: ['sulfa', 'sulfamethoxazole', 'co-trimoxazole', 'sulfasalazine'],
+  NSAIDs: ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin', 'mefenamic', 'piroxicam', 'celecoxib', 'etoricoxib'],
+}
+export const cleanAllergens = (list) =>
+  [...new Set((Array.isArray(list) ? list : []).map((a) => String(a || '').trim().slice(0, 60)).filter(Boolean))].slice(0, 20)
+export const allergyHits = (product, allergens) => {
+  const hay = `${product?.generic || ''} ${product?.name || ''}`.toLowerCase()
+  return (allergens || []).filter((a) => (ALLERGY_GROUPS[a] || [a.toLowerCase()]).some((t) => t && hay.includes(t)))
+}
+
 export const LIFETIME_LAST_YEAR = 2015
 export const LICENSE_NO_DIGITS = 5
 export const isLicenseNo = (s) => /^ภ\.\d+$/.test(s || '') && s.length - 2 <= LICENSE_NO_DIGITS

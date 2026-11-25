@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import mysql from 'mysql2/promise'
-import { dbConfig, DB_NAME, LIFETIME_LAST_YEAR } from './db.js'
+import { ALLERGY_GROUPS, dbConfig, DB_NAME, LIFETIME_LAST_YEAR } from './db.js'
 import { clearAll, seedDatabase } from './seed.js'
 
 const reset = process.argv.includes('--reset')
@@ -44,6 +44,18 @@ try {
     await conn.query('ALTER TABLE receipt_items ADD COLUMN rx_no VARCHAR(50) NULL AFTER dosage, ADD COLUMN prescriber VARCHAR(150) NULL AFTER rx_no')
     await conn.query("UPDATE receipt_items i JOIN receipts r ON r.id = i.receipt_id SET i.rx_no = r.rx_no, i.prescriber = r.prescriber WHERE i.category = 'ยาควบคุมพิเศษ' AND r.rx_no IS NOT NULL")
     console.log('เพิ่มเลขใบสั่งยาและชื่อแพทย์แยกตามรายการยาแล้ว')
+  }
+  const [ccols] = await conn.query("SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'customers'", [DB_NAME])
+  if (!ccols.some((x) => x.c === 'allergens')) {
+    await conn.query('ALTER TABLE customers ADD COLUMN allergens TEXT NULL AFTER allergies')
+    const [gens] = await conn.query("SELECT DISTINCT generic FROM products WHERE generic IS NOT NULL AND generic NOT IN ('', '-')")
+    const names = [...Object.keys(ALLERGY_GROUPS), ...gens.map((g) => g.generic)]
+    const [olds] = await conn.query("SELECT id, allergies FROM customers WHERE allergies IS NOT NULL AND allergies <> ''")
+    for (const o of olds) {
+      const found = names.filter((n) => o.allergies.toLowerCase().includes(n.toLowerCase()))
+      if (found.length) await conn.query('UPDATE customers SET allergens = ? WHERE id = ?', [JSON.stringify(found), o.id])
+    }
+    console.log(`เพิ่มรายการยาที่แพ้แบบเลือกได้แล้ว (แปลงจากข้อมูลเดิม ${olds.length} คน)`)
   }
   const [lic] = await conn.query(`UPDATE staff SET lic_expires = CASE WHEN YEAR(lic_issued) <= ${LIFETIME_LAST_YEAR} THEN NULL ELSE DATE_ADD(lic_issued, INTERVAL 5 YEAR) END
     WHERE lic_no IS NOT NULL AND lic_issued IS NOT NULL`)

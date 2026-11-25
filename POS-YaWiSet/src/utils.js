@@ -88,6 +88,20 @@ export const fmtPhone = (p) => {
   return d
 }
 
+export const ALLERGY_GROUPS = {
+  Penicillin: ['penicillin', 'amoxicillin', 'ampicillin', 'cloxacillin', 'dicloxacillin'],
+  Cephalosporin: ['cefalexin', 'cephalexin', 'cefuroxime', 'cefixime', 'ceftriaxone', 'cefdinir'],
+  Sulfa: ['sulfa', 'sulfamethoxazole', 'co-trimoxazole', 'sulfasalazine'],
+  NSAIDs: ['ibuprofen', 'diclofenac', 'naproxen', 'aspirin', 'mefenamic', 'piroxicam', 'celecoxib', 'etoricoxib'],
+}
+export const allergenLabel = (a) => (ALLERGY_GROUPS[a] ? `กลุ่ม ${a}` : a)
+export const allergyHits = (product, allergens) => {
+  const hay = `${product?.generic || ''} ${product?.name || ''}`.toLowerCase()
+  return (allergens || []).filter((a) => (ALLERGY_GROUPS[a] || [a.toLowerCase()]).some((t) => t && hay.includes(t)))
+}
+export const hasAllergy = (c) => !!(c?.allergens?.length || c?.allergies)
+export const allergyText = (c) => [...(c?.allergens || []).map(allergenLabel), c?.allergies].filter(Boolean).join(' · ')
+
 export const matchMember = (c, q) => {
   const k = q.trim().toLowerCase()
   if (!k || !c.memberNo) return false
@@ -99,7 +113,7 @@ export const matchMember = (c, q) => {
 export const blankMember = (prefill = '') => {
   const digits = prefill.replace(/[\s-]/g, '')
   const isPhone = /^\d+$/.test(digits)
-  return { id: '', name: isPhone ? '' : prefill.trim(), phone: isPhone ? digits : '', birthDate: '', allergies: '', note: '', consent: false }
+  return { id: '', name: isPhone ? '' : prefill.trim(), phone: isPhone ? digits : '', birthDate: '', allergens: [], allergies: '', note: '', consent: false }
 }
 
 export const memberStats = (receipts, id) => {

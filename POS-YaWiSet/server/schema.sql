@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS customers (
   phone      VARCHAR(30),
   birth_date DATE NULL,
   allergies  VARCHAR(500),
+  allergens  TEXT NULL,
   note       VARCHAR(300),
   consent_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
