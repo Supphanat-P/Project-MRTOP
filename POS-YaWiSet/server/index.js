@@ -8,7 +8,7 @@ import { clearAll, seedDatabase } from './seed.js'
 const app = express()
 app.use(express.json({ limit: '1mb' }))
 
-const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
+const DRUG_CATEGORIES = ['ยาสามัญประจำบ้าน', 'ยาอันตราย', 'ยาควบคุมพิเศษ', 'ยาบรรจุเสร็จที่ไม่ใช่ยาอันตราย']
 const ROLES = ['admin', 'pharmacist']
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next)
 const okId = (s) => /^[a-z0-9]{2,20}$/.test(s || '')
@@ -278,15 +278,12 @@ app.post('/api/checkout', wrap(async (req, res) => {
       if (isRx && (!rxNo || !prescriber)) throw new HttpError(400, `${p.name} เป็นยาควบคุมพิเศษ ต้องระบุเลขใบสั่งยาและชื่อแพทย์`)
       lines.push({ p, qty, rxNo, prescriber })
     }
-    const needPharm = lines.some((l) => PHARMACIST_ONLY.includes(l.p.category))
-
-    const pharmacistId = r.pharmacistId || null
-    if (needPharm && !pharmacistId) throw new HttpError(400, 'มียาอันตราย/ยาควบคุมพิเศษ ต้องระบุเภสัชกรผู้จ่ายยา')
-    if (pharmacistId) {
-      const [[ph]] = await c.query('SELECT * FROM staff WHERE id = ? AND active = 1', [pharmacistId])
-      if (!ph?.lic_no) throw new HttpError(400, 'ผู้จ่ายยาไม่มีใบประกอบวิชาชีพ')
-      if (ph.lic_expires && ph.lic_expires < today) throw new HttpError(400, `ใบอนุญาตของ ${ph.title}${ph.name} หมดอายุแล้ว`)
-    }
+    const drugs = lines.filter((l) => DRUG_CATEGORIES.includes(l.p.category))
+    const [[me]] = await c.query('SELECT * FROM staff WHERE id = ? AND active = 1', [req.user.staffId])
+    const licensed = !!me?.lic_no && !(me.lic_expires && me.lic_expires < today)
+    if (drugs.length && !me?.lic_no) throw new HttpError(403, `ผู้ไม่มีใบประกอบวิชาชีพเภสัชกรรมขายยาไม่ได้ (${drugs.map((l) => l.p.name).join(', ')}) ขายได้เฉพาะสินค้าที่ไม่ใช่ยา`)
+    if (drugs.length && !licensed) throw new HttpError(403, `ใบอนุญาตของ ${me.title}${me.name} หมดอายุแล้ว ขายยาไม่ได้`)
+    const pharmacistId = licensed ? me.id : null
 
     const subtotal = +lines.reduce((s, l) => s + l.p.price * l.qty, 0).toFixed(2)
     const discount = Math.min(Math.max(Number(r.discount) || 0, 0), subtotal)

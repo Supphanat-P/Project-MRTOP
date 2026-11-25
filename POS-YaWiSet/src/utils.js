@@ -45,6 +45,8 @@ export const CATEGORY_INFO = {
   },
 }
 export const PHARMACIST_ONLY = ['ยาอันตราย', 'ยาควบคุมพิเศษ']
+export const DRUG_CATEGORIES = ['ยาสามัญประจำบ้าน', 'ยาอันตราย', 'ยาควบคุมพิเศษ', 'ยาบรรจุเสร็จที่ไม่ใช่ยาอันตราย']
+export const isDrug = (p) => DRUG_CATEGORIES.includes(p?.category)
 export const UNITS = ['แผง', 'เม็ด', 'แคปซูล', 'ขวด', 'ซอง', 'กล่อง', 'หลอด', 'ชิ้น']
 export const ROLE_LABEL = { admin: 'แอดมิน', pharmacist: 'เภสัชกร' }
 export const PAY_LABEL = { cash: 'เงินสด', qr: 'พร้อมเพย์', card: 'บัตร' }

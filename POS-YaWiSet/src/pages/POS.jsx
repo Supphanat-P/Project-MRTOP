@@ -5,6 +5,7 @@ import {
   CATEGORIES,
   CATEGORY_INFO,
   fmtPhone,
+  isDrug,
   licenseStatus,
   matchMember,
   blankMember,
@@ -133,7 +134,14 @@ export default function POS() {
     );
   }, [state.products, q, cat]);
 
+  const canSellDrugs =
+    !!me?.license && licenseStatus(me.license).key !== "expired";
   const add = (p, n = 1) => {
+    if (isDrug(p) && !canSellDrugs)
+      return notify(
+        `${p.name} เป็นยา ต้องมีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุจึงจะขายได้`,
+        "danger",
+      );
     const have = cart.find((c) => c.productId === p.id)?.qty || 0;
     if (have + n > stockOf(p))
       return notify(
@@ -176,19 +184,16 @@ export default function POS() {
   const disc = Math.min(Number(discount) || 0, subtotal);
   const total = subtotal - disc;
   const change = (Number(received) || 0) - total;
-  const needPharm = lines.some((l) => PHARMACIST_ONLY.includes(l.p.category));
+  const needPharm = lines.some((l) => isDrug(l.p));
   const cust = state.customers.find((c) => c.id === customerId);
 
   const checkout = async () => {
     if (!lines.length) return notify("ยังไม่มีสินค้าในตะกร้า", "danger");
-    if (needPharm) {
-      if (!me?.license || licenseStatus(me.license).key === "expired") {
-        return notify(
-          "มียาอันตราย/ยาควบคุมพิเศษ ผู้ใช้งานที่เข้าสู่ระบบต้องมีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุ",
-          "danger",
-        );
-      }
-    }
+    if (needPharm && !canSellDrugs)
+      return notify(
+        "ในตะกร้ามียา ผู้ใช้งานที่เข้าสู่ระบบต้องมีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุ",
+        "danger",
+      );
     const missingRx = lines.find(
       (l) =>
         l.p.category === "ยาควบคุมพิเศษ" &&
@@ -234,6 +239,14 @@ export default function POS() {
           <h1 className="section-title">
             ขายหน้า<em>ร้าน</em>
           </h1>
+          {!canSellDrugs && (
+            <div className="alert warn" style={{ marginTop: 12 }}>
+              {me?.license
+                ? "ใบประกอบวิชาชีพของบัญชีนี้หมดอายุแล้ว"
+                : "บัญชีนี้ไม่มีใบประกอบวิชาชีพเภสัชกรรม"}{" "}
+              ขายได้เฉพาะสินค้าที่ไม่ใช่ยา (เวชสำอาง อุปกรณ์การแพทย์ อาหารเสริม)
+            </div>
+          )}
           <div className="row" style={{ marginTop: 16 }}>
             <div className="search">
               <input
@@ -265,11 +278,13 @@ export default function POS() {
               const st = stockOf(p);
               const isControlled = p.category === "ยาควบคุมพิเศษ";
               const isDangerous = p.category === "ยาอันตราย";
+              const locked = isDrug(p) && !canSellDrugs;
               return (
                 <button
                   key={p.id}
                   className={`prod ${isControlled ? "prod-controlled" : isDangerous ? "prod-danger" : ""}`}
-                  disabled={!st}
+                  disabled={!st || locked}
+                  title={locked ? "ต้องมีใบประกอบวิชาชีพเภสัชกรรม" : undefined}
                   onClick={() => add(p)}
                 >
                   <div className="prod-badge-row">
@@ -282,7 +297,7 @@ export default function POS() {
                     <Badge
                       cls={!st ? "danger" : st <= p.minStock ? "warn" : "muted"}
                     >
-                      {st ? `${st} ${p.unit}` : "หมด"}
+                      {locked ? "ต้องมีใบอนุญาต" : st ? `${st} ${p.unit}` : "หมด"}
                     </Badge>
                   </span>
                 </button>
@@ -495,7 +510,7 @@ export default function POS() {
                   licenseStatus(me.license).key === "expired") && (
                   <div className="alert danger small" style={{ marginTop: 8 }}>
                     บัญชีนี้ไม่มีใบประกอบวิชาชีพเภสัชกรรมที่ยังไม่หมดอายุ
-                    ไม่สามารถจ่ายยาอันตราย/ควบคุมพิเศษได้
+                    ไม่สามารถขายยาได้
                   </div>
                 )}
             </div>
