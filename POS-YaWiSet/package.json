@@ -9,6 +9,7 @@
     "server:watch": "node --watch --env-file=.env server/index.js",
     "db:init": "node --env-file=.env server/init-db.js",
     "db:reset": "node --env-file=.env server/init-db.js --reset",
+    "db:simulate": "node --env-file=.env server/simulate.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
